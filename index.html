@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>What can you run for? Fairfield County, Ohio</title>
+<title>Run for Office in Fairfield County, Ohio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,600;0,800;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,400;0,600;0,800;0,900;1,400&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#F5F6F8;--card:#FFFFFF;--ink:#14213D;--slate:#556076;--rule:#D8DDE5;--mark:#2B4C7E;--red:#B3261E;--redbg:#FBECEA;--focus:#F2B705;
- font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--paper)}
+ font-family:"Libre Franklin",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--paper)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#10172A;--card:#18213A;--ink:#E7EBF3;--slate:#A3ADC2;--rule:#2C3754;--mark:#8FB0E6;--red:#F07A70;--redbg:#3A1E24}}
 :root[data-theme="dark"]{--paper:#10172A;--card:#18213A;--ink:#E7EBF3;--slate:#A3ADC2;--rule:#2C3754;--mark:#8FB0E6;--red:#F07A70;--redbg:#3A1E24}
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -16,7 +16,7 @@
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--paper);line-height:1.5;font-size:16px}
 main{max-width:720px;margin:0 auto;padding:40px 20px 64px}
-h1{font-size:clamp(2rem,6vw,2.9rem);line-height:1.05;font-weight:800;letter-spacing:-.02em;margin:0 0 12px}
+h1{font-size:clamp(2rem,6.5vw,3rem);line-height:1.02;font-weight:900;letter-spacing:-.025em;margin:0 0 12px}
 .lede{color:var(--slate);margin:0 0 28px;max-width:58ch}
 label.big{display:block;font-weight:600;margin-bottom:8px}
 .searchrow{display:flex;gap:8px}
@@ -74,6 +74,8 @@ details.alt select{margin-top:8px;font-size:1rem;padding:10px 12px;border-width:
 .office.up27{background:color-mix(in srgb,#F2B705 12%,var(--card));border-left:5px solid #F2B705;padding-left:12px;margin-left:-17px;border-radius:0 8px 8px 0}
 .b27{background:#F2B705;color:#1a1a1a;font-size:.76rem;font-weight:700;border-radius:999px;padding:0 9px;line-height:1.55}
 @media (max-width:520px){.office.up27{margin-left:-12px;padding-left:9px;border-left-width:4px}}
+.legend27{display:flex;gap:10px;align-items:center;margin:10px 0 0!important;padding:8px 12px;border-radius:8px;background:color-mix(in srgb,#F2B705 12%,var(--card));border-left:5px solid #F2B705;color:var(--ink)!important;font-size:.92rem}
+.sw27{display:none}
 footer{margin-top:48px;color:var(--slate);font-size:.85rem;border-top:1px solid var(--rule);padding-top:16px}
 @media (max-width:520px){main{padding-top:28px}.go{padding:0 14px}}
 @media (prefers-reduced-motion:no-preference){#results.show{animation:rise .35s ease-out}@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}}
@@ -81,8 +83,8 @@ footer{margin-top:48px;color:var(--slate);font-size:.85rem;border-top:1px solid 
 </head>
 <body>
 <main>
-<h1>What can you run for?</h1>
-<p class="lede">Type your home address in Fairfield County, Ohio. You'll see every elected office on your ballot, from your precinct up to President, with what each one does, when it's up, and whether it pays.</p>
+<h1>Run for Office in Fairfield County</h1>
+<p class="lede">Want to run for office but don't know where to start? Type in your address and see every elected office available to you. From Central Committee to Commander in Chief.</p>
 
 <label class="big" for="q">Your street address</label>
 <div class="searchrow">
@@ -551,7 +553,8 @@ function render(styleId,label,splitWarn){const s=DATA.styles[styleId-1];const [p
   const L=k=>DATA.labels[k]||'';
   const rows=[['Precinct',tc(pct)],['City',city?L('CITY:'+city)+(ward?', '+L('WARD:'+ward).replace(/^.* Ward/,'Ward'):''):''],['Township',twp?L('TWP:'+twp):''],['Village',vill?L('VILL:'+vill):''],
     ['School district',sd?L('SD:'+sd):''],['Ohio House',hd?'District '+hd:'']].filter(r=>r[1]);
-  let h=`<div class="you"><h2>${esc(label)}</h2><p>You can run for <b>${mine.length}</b> offices. ${n27?`<b>${n27}</b> have seats on the November 2027 ballot, highlighted below.`:''}</p>
+  let h=`<div class="you"><h2>${esc(label)}</h2><p>You can run for <b>${mine.length}</b> offices. ${n27?`<b>${n27}</b> have seats on the November 2027 ballot.`:''}</p>
+   ${n27?`<p class="legend27"><span class="sw27" aria-hidden="true"></span><span><b>Highlighted in yellow:</b> offices with a seat up in November 2027, your next chance to run.</span></p>`:''}
    <p style="margin-top:6px;font-size:.9rem">Each office is tagged by campaign size, from <b>Starter</b> to <b>Major campaign</b>. Most people start small.</p>
    ${splitWarn?'<p style="color:var(--red);margin-top:8px">This precinct is split. A few local offices may differ, so use your address for an exact answer.</p>':''}
    <dl>${rows.map(r=>`<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl></div>`;
