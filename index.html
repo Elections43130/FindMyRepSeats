@@ -28,7 +28,11 @@ button{font:inherit;font-weight:600;cursor:pointer;border-radius:10px}
 .hint{color:var(--slate);font-size:.9rem;margin:8px 0 0}
 details.alt{margin-top:18px;color:var(--slate);font-size:.95rem}
 details.alt summary{cursor:pointer}
-details.alt select{margin-top:8px;font-size:1rem;padding:10px 12px;border-width:1px;border-color:var(--rule)}
+details.alt input{margin-top:8px;font-size:1rem;padding:10px 12px;border-width:1px;border-color:var(--rule)}
+.pctlist{margin-top:6px;max-height:260px;overflow-y:auto;border:1px solid var(--rule);border-radius:10px;background:var(--card)}
+.pctlist button{display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--rule);border-radius:0;padding:10px 12px;color:var(--ink);font-weight:400}
+.pctlist button:last-child{border-bottom:0}.pctlist button:hover,.pctlist button.hl{background:color-mix(in srgb,var(--mark) 12%,transparent)}
+.pctlist .none{padding:10px 12px;color:var(--slate)}
 .msg{margin:22px 0 0;padding:14px 16px;border-left:4px solid var(--mark);background:var(--card);border-radius:0 8px 8px 0}
 .msg.warn{border-color:var(--red)}
 .choices{display:grid;gap:8px;margin-top:10px}
@@ -94,7 +98,8 @@ footer{margin-top:48px;color:var(--slate);font-size:.85rem;border-top:1px solid 
 <p class="hint" id="qhint">House number and street is enough. Route numbers like St Rt 158 work too.</p>
 
 <details class="alt"><summary>Know your precinct instead?</summary>
-  <select id="pct" aria-label="Pick your precinct"><option value="">Pick your precinct</option></select>
+  <input id="pctq" type="search" autocomplete="off" placeholder="Type it, like Lancaster 6B, or scroll the list" aria-label="Type or pick your precinct" aria-controls="pctlist">
+  <div id="pctlist" class="pctlist" role="listbox" aria-label="Precincts"></div>
 </details>
 
 <div id="status" aria-live="polite"></div>
@@ -134,7 +139,7 @@ const FORMS={
  other:[{t:'Petition forms for this office',u:SOS_FORMS}]
 };
 const WHO={pct:'A registered voter who lives in the precinct. The county party can set its own rules for who may run.',
- scc:'A registered voter who lives in the state senate district. The people who sign your petition must be Democrats: they voted in the Democratic primary in the last two calendar years, or didn\u2019t vote in any other party\u2019s primary.',
+ scc:'A registered voter who lives in the state senate district. The people who sign your petition can be Democrats or unaffiliated voters. Anyone who voted in another party\u2019s primary in the last two calendar years can\u2019t sign.',
  trustee:'A registered voter, 18 or older, who lives in the township.',fiscal:'A registered voter, 18 or older, who lives in the township.',
  school:'A registered voter, 18 or older, who lives in the school district. You don\u2019t need kids in the schools or an education background.',
  esc:'A registered voter, 18 or older, who lives in the ESC\u2019s territory.',
@@ -170,7 +175,7 @@ pct:{do:['Go to the county party\u2019s monthly meetings and vote on party busin
 scc:{do:['Help run the Ohio Democratic Party: elect the state chair and set party rules','Vote on statewide endorsements and party positions','Carry your district\u2019s concerns to the state party'],
  time:'Several meetings a year, plus regional events and calls.',
  fit:'You\u2019re already active in the county party and want a voice at the state level.',
- ballot:'Elected in the Democratic primary in gubernatorial years. One man and one woman per state senate district. You need 5 signatures from Democrats in the district, and there\u2019s no filing fee.'},
+ ballot:'Elected in the Democratic primary in gubernatorial years. One man and one woman per state senate district. You need 5 signatures from Democrats or unaffiliated voters in the district, and there\u2019s no filing fee.'},
 trustee:{do:['Maintain township roads, ditches, and cemeteries','Oversee fire and EMS service or contracts','Handle zoning, if the township has adopted it','Decide whether to put township levies on the ballot'],
  time:'Usually two evening meetings a month, plus calls from residents and time checking on roads and projects.',
  fit:'You care about the practical stuff close to home: roads, snowplowing, fire service, and how your area grows.',
@@ -216,7 +221,7 @@ claw:{do:['Give legal advice to the mayor, council, and city departments','Write
 cexec:{do:['A full-time or near full-time role running part of city government'],time:'Full-time in most cities.',fit:'You have management, finance, or legal experience, depending on the office.',
  ballot:'City election rules vary. Confirm your city\u2019s filing date and signature count with the Board of Elections.'},
 county:{do:['Run a county office and its staff'],time:'Full-time (the coroner is part-time).',fit:'You have relevant professional experience and are ready for a countywide campaign.',
- ballot:'Partisan. File for the Democratic primary with 50 signatures from Democrats in the county, then win the general election. Countywide races take real fundraising and a campaign team.'},
+ ballot:'Partisan. File for the Democratic primary with 50 signatures from Democrats or unaffiliated voters in the county, then win the general election. Countywide races take real fundraising and a campaign team.'},
 judge:{do:['Hear and decide cases'],time:'Full-time.',fit:'You\u2019re an attorney with at least 6 years of practice.',ballot:'Judicial races have their own filing rules. Talk to the county party and the Board of Elections early.'},
 big:{do:['A full-time elected office'],time:'Full-time.',fit:'You\u2019re ready for a large campaign with serious fundraising.',ballot:'Partisan primary, then the general election. Talk to the county party early.'}
 };
@@ -344,21 +349,21 @@ const TIERTXT={
  t5:'Millions of dollars, paid staff, and a year or more of full-time campaigning. Nearly everyone who wins these started with a smaller office. If this is the dream, start local and build.'};
 function sigFor(x,g){const k=x[0].split(':')[0],n=x[2],v=x[0].split(':')[1]||'';
  {const L=localRule(x,g);if(L)return L.sig}
- if(g===GUIDES.pct)return 'None. The Fairfield County Democratic Party uses the no-petition option (Form 2-M). If the party ever switches to the petition option (Form 2-L), it\u2019s 5 Democrats from your precinct';
- if(g===GUIDES.scc)return '5 Democrats who live in the state senate district';
+ if(g===GUIDES.pct)return 'None. The Fairfield County Democratic Party uses the no-petition option (Form 2-M). If the party ever switches to the petition option (Form 2-L), it\u2019s 5 Democrats or unaffiliated voters from your precinct';
+ if(g===GUIDES.scc)return '5 Democrats or unaffiliated voters who live in the state senate district';
  if(k==='TWP')return '25 voters who live in the township';
  if(k==='SD')return v.endsWith('CSD')?'75 voters in the district if it has 20,000 to 49,999 people, or 150 if it has 50,000 to 99,999. The BOE will tell you which applies':'25 voters who live in the school district';
  if(k==='ESC')return '50 voters who live in the school districts the ESC serves';
  if(k==='VILL')return '10 voters who live in the village if it has fewer than 2,000 people, or 50 if it has 2,000 or more';
  {const L=localRule(x,g);if(L)return L.sig}
  if((k==='CITY'||k==='WARD')&&/judge/i.test(n))return '50 voters who live in the court\u2019s territory, unless the Columbus charter says otherwise';
- if(k==='CITY'||k==='WARD')return x[7]==='Partisan'?`Up to 50 Democrats who live in the ${k==='WARD'?'ward':'city'}. Smaller cities can need fewer, so confirm with the BOE.`:`50 voters who live in the ${k==='WARD'?'ward':'city'} under state law, unless the city charter sets a different number. Confirm with the BOE`;
+ if(k==='CITY'||k==='WARD')return x[7]==='Partisan'?`Up to 50 Democrats or unaffiliated voters who live in the ${k==='WARD'?'ward':'city'}. Smaller cities can need fewer, so confirm with the BOE.`:`50 voters who live in the ${k==='WARD'?'ward':'city'} under state law, unless the city charter sets a different number. Confirm with the BOE`;
  if(n==='Vice President')return 'None. The presidential nominee picks a running mate';
  if(n==='President')return 'Set state by state as part of a national campaign';
  if(/Board of Education/.test(n))return '100 voters who live in the district';
- if(k==='ALL'&&x[1]==='State'&&!/State Senator|Central|Appeals/.test(n)||/U\.S\. Senator/.test(n))return '1,000 Democrats statewide, and no more than 3,000';
- if(x[1]==='County')return '50 Democrats who live in the county';
- return '50 Democrats who live in the district'}
+ if(k==='ALL'&&x[1]==='State'&&!/State Senator|Central|Appeals/.test(n)||/U\.S\. Senator/.test(n))return '1,000 Democrats or unaffiliated voters statewide, and no more than 3,000';
+ if(x[1]==='County')return '50 Democrats or unaffiliated voters who live in the county';
+ return '50 Democrats or unaffiliated voters who live in the district'}
 
 function guideFor(x){const k=x[0].split(':')[0],n=x[2];
  if(k==='PCT')return GUIDES.pct; if(n.startsWith('State Central'))return GUIDES.scc;
@@ -467,8 +472,8 @@ function localRule(x,g){const t=x[0].split(':')[0],n=x[2];
  const ward=t==='WARD';const chart=c.charter?` ${c.name} is a charter city, and its charter can change these rules, so confirm with the Board of Elections before you circulate.`:'';
  if(c.columbus)return {form:null,sig:'Set by the Columbus city charter. Get the number from the Franklin County Board of Elections',fee:null,primary:true,
    text:'Columbus runs its own nonpartisan elections under its city charter, with a May primary when enough candidates file. Get the petition, signature count, and deadline from the Franklin County Board of Elections.'};
- if(c.partisan)return {form:'2-i',sig:ward?'25 Democrats who live in the ward':'50 Democrats who live in the city',fee:'$45',primary:true,
-   text:`Partisan. ${c.name} holds party primaries in May of odd-numbered years. File Form 2-I with ${ward?'25':'50'} signatures from Democrats by 4 p.m., 90 days before the primary (early February). The filing fee is $45.${chart}`};
+ if(c.partisan)return {form:'2-i',sig:ward?'25 Democrats or unaffiliated voters who live in the ward':'50 Democrats or unaffiliated voters who live in the city',fee:'$45',primary:true,
+   text:`Partisan. ${c.name} holds party primaries in May of odd-numbered years. File Form 2-I with ${ward?'25':'50'} signatures from Democrats or unaffiliated voters by 4 p.m., 90 days before the primary (early February). The filing fee is $45.${chart}`};
  return {form:'3-o',sig:`50 voters who live in the ${ward?'ward':'city'}`,fee:'$45',primary:false,
    text:`Nonpartisan, no primary. File Form 3-O with 50 signatures by 4 p.m., 90 days before the November election (early August). The filing fee is $45.${chart}`};
 }
@@ -575,7 +580,7 @@ function render(styleId,label,splitWarn){const s=DATA.styles[styleId-1];const [p
    <li>Sign every place the form asks for your signature.</li>
    <li>Use your exact voting address, matching your voter registration.</li>
    <li>Get about twice the signatures you need, since some won't be valid. Don't go over three times the minimum, or the petition can be rejected.</li>
-   <li>Signers must be registered voters who live in the district, signing in ink, with the address that\u2019s on their voter registration and the date.</li>\n   <li>Each petition paper can only have signers from one county, and only one person can circulate each paper.</li>\n   <li>For party primaries, everyone who signs or circulates must be a member of your party. You can circulate your own petition, but you can\u2019t sign it.</li>
+   <li>Signers must be registered voters who live in the district, signing in ink, with the address that\u2019s on their voter registration and the date.</li>\n   <li>Each petition paper can only have signers from one county, and only one person can circulate each paper.</li>\n   <li>For party primaries, signers and circulators can be Democrats or unaffiliated voters. Anyone who voted in another party\u2019s primary in the last two calendar years can\u2019t sign or circulate, and their signature gets thrown out. You can circulate your own petition, but you can\u2019t sign it.</li>
    <li>Fill out the circulator statement completely, including the number of signatures on that page.</li>
    <li>Download the form fresh each cycle. Old versions can be rejected.</li>
    <li>Some offices also require a financial disclosure statement with the <a href="${ETHICS}" target="_blank" rel="noopener">Ohio Ethics Commission</a>.</li>
@@ -583,12 +588,22 @@ function render(styleId,label,splitWarn){const s=DATA.styles[styleId-1];const [p
   <p>File early, but check it yourself first: under Secretary of State Directive 2022-17, boards of elections are not allowed to pre-check petitions. Once it\u2019s filed, it can\u2019t be changed or added to.${LOCAL.boePhone?' Questions? Call '+esc(LOCAL.boePhone)+'.':''}${LOCAL.boeUrl?` <a href="${LOCAL.boeUrl}" target="_blank" rel="noopener">Candidate info from the BOE</a>`:''}</p></div>`;
   const r=$('#results');r.classList.remove('show');void r.offsetWidth;r.innerHTML=h;r.classList.add('show');r.querySelectorAll('.ovalbtn').forEach(b=>b.onclick=()=>{const d=b.closest('.office').querySelector('details');d.open=!d.open;b.classList.toggle('on',d.open)});r.querySelectorAll('.office details').forEach(d=>d.addEventListener('toggle',()=>{const b=d.closest('.office').querySelector('.ovalbtn');if(b)b.classList.toggle('on',d.open)}));const pm=$('#pctmore');if(pm)pm.onclick=e=>{e.preventDefault();const d=r.querySelector('.ballot details');d.open=true;d.scrollIntoView({behavior:'smooth',block:'center'})}}
 let t;const q=$('#q');
-const run=()=>{$('#pct').value='';show(resolve(q.value))};
+const run=()=>{$('#pctq').value='';drawPct();show(resolve(q.value))};
 q.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>{if(/^\s*\d+\s+\S{3,}/.test(q.value))run();else if(!q.value.trim())show({state:'empty'})},350)});
 q.addEventListener('keydown',e=>{if(e.key==='Enter'){clearTimeout(t);run()}});
 $('#go').onclick=run;
-const sel=$('#pct');DATA.precincts.forEach(p=>{const o=document.createElement('option');o.value=p[0];o.textContent=tc(p[0]);sel.appendChild(o)});
-sel.onchange=()=>{const p=DATA.precincts.find(x=>x[0]===sel.value);$('#status').innerHTML='';if(!p){$('#results').innerHTML='';return}render(p[1],'Precinct '+tc(p[0]),p[2])};
+const pq=$('#pctq'),pl=$('#pctlist');const cmp=s=>s.toUpperCase().replace(/[^A-Z0-9]/g,'');
+const PL=DATA.precincts.map(p=>({p,key:cmp(p[0]),label:tc(p[0])}));let pctHits=[],pctHl=0;
+function drawPct(){const toks=pq.value.toUpperCase().split(/\s+/).map(cmp).filter(Boolean);
+  pctHits=toks.length?PL.filter(r=>toks.every(t=>r.key.includes(t))):PL;pctHl=0;
+  pl.innerHTML=pctHits.length?pctHits.map((r,i)=>`<button type="button" role="option" data-i="${i}"${i===0&&toks.length?' class="hl"':''}>${esc(r.label)}</button>`).join(''):'<div class="none">No precinct matches that. Try just the township or city name.</div>';
+  pl.querySelectorAll('button').forEach(b=>b.onclick=()=>pickPct(pctHits[+b.dataset.i]))}
+function pickPct(r){if(!r)return;pq.value=r.label;q.value='';$('#status').innerHTML='';render(r.p[1],'Precinct '+r.label,r.p[2]);pl.innerHTML='';$('#results').scrollIntoView({behavior:'smooth',block:'start'})}
+pq.addEventListener('input',drawPct);pq.addEventListener('focus',()=>{if(!pl.innerHTML)drawPct()});
+pq.addEventListener('keydown',e=>{const bs=pl.querySelectorAll('button');if(!bs.length)return;
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();bs[pctHl]&&bs[pctHl].classList.remove('hl');pctHl=(pctHl+(e.key==='ArrowDown'?1:-1)+bs.length)%bs.length;bs[pctHl].classList.add('hl');bs[pctHl].scrollIntoView({block:'nearest'})}
+  if(e.key==='Enter'){e.preventDefault();pickPct(pctHits[pctHl])}});
+drawPct();
 
 // Auto-resize when embedded: tell the host page how tall we are
 if(window.parent!==window){const send=()=>parent.postMessage({type:'rfs-height',height:Math.ceil(document.body.getBoundingClientRect().height)},'*');
