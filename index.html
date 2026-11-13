@@ -89,6 +89,42 @@ details.alt input{margin-top:8px;font-size:1rem;padding:10px 12px;border-width:1
 h1{color:#022F58}
 footer a{color:var(--mark);font-weight:600}
 @media (max-width:520px){.brand .logo{height:46px}}
+[hidden]{display:none!important}
+.rbox{margin-top:12px}
+.rbtns{display:flex;flex-wrap:wrap;gap:8px}
+.rbtn{background:var(--red);color:#fff;border:2px solid var(--red);padding:9px 16px}
+.rbtn:hover{filter:brightness(1.08)}.rbtn:disabled{opacity:.6;cursor:wait}
+.rbtn2{background:var(--card);color:var(--red);border:2px solid var(--red);padding:9px 16px}
+.rform{margin-top:12px;display:grid;gap:10px;background:var(--card);border-radius:10px;padding:16px;border:1px solid var(--rule);max-width:520px}
+.rform label{font-weight:600;font-size:.92rem;display:grid;gap:4px;color:var(--ink)}
+.rform label small{font-weight:400;color:var(--slate)}
+.rform input,.rform textarea{font:inherit;font-weight:400;color:var(--ink);background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:10px 12px;width:100%}
+.rform .chip{margin:0;font-size:.9rem;color:var(--slate)}
+.rform > small{color:var(--slate);font-size:.82rem}
+.rerr{margin:0;color:var(--red);font-weight:600;font-size:.9rem}.rerr:empty{display:none}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.rdone,.rshare{margin-top:12px;background:var(--card);border-radius:10px;padding:12px 16px;border:1px solid var(--rule);max-width:520px}
+.rdone p,.rshare p{margin:4px 0}
+.rlink{display:flex;gap:8px}.rlink input{flex:1;min-width:0;font:inherit;font-size:.88rem;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:8px 10px}
+.rcopied{color:var(--slate);font-size:.88rem}.rcopied:empty{display:none}
+.rdone a,.rshare a{color:var(--red);font-weight:600}
+#openseats{margin-top:40px}
+.oscard{background:var(--card);border:1px solid var(--rule);border-top:6px solid var(--red);border-radius:12px;padding:20px 22px}
+.oscard h2{margin:0 0 6px;font-size:1.35rem;font-weight:900;letter-spacing:-.01em;color:var(--ink)}
+.oscard > p{margin:0 0 12px;color:var(--slate)}
+.bar{height:14px;border-radius:999px;background:var(--redbg);overflow:hidden;border:1px solid var(--rule)}
+.bar span{display:block;height:100%;background:var(--ink)}
+.barlbl{display:flex;gap:18px;font-size:.9rem;color:var(--slate);margin:8px 0 4px!important}
+.barlbl i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:baseline}
+.kf{background:var(--ink)}.ko{background:var(--redbg);border:1px solid var(--red)}
+.osd{margin-top:10px}.osd summary{cursor:pointer;color:var(--red);font-weight:600}
+.oshint{color:var(--slate);font-size:.9rem;margin:8px 0}
+.osg{margin-top:14px}.osg h4{margin:0 0 6px;font-size:.98rem;display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--rule);padding-bottom:4px}
+.osg h4 span{font-weight:400;color:var(--slate);font-size:.85rem}
+.osb{display:flex;flex-wrap:wrap;gap:6px}
+.osb button{background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;font-weight:600;font-size:.88rem}
+.osb button:hover{border-color:var(--red);color:var(--red)}
+.asof{margin:14px 0 0;color:var(--slate);font-size:.82rem}
 footer{margin-top:48px;color:var(--slate);font-size:.85rem;border-top:1px solid var(--rule);padding-top:16px}
 @media (max-width:520px){main{padding-top:28px}.go{padding:0 14px}}
 @media (prefers-reduced-motion:no-preference){#results.show{animation:rise .35s ease-out}@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}}
@@ -117,6 +153,7 @@ footer{margin-top:48px;color:var(--slate);font-size:.85rem;border-top:1px solid 
 
 <div id="status" aria-live="polite"></div>
 <section id="results" aria-live="polite"></section>
+<section id="openseats" aria-label="Open precinct committee seats"></section>
 
 <footer>
 <p><b>Questions?</b> Email FairDems at <a href="mailto:info@fairdems.com">info@fairdems.com</a>. We'll help you figure out your first run.</p>
@@ -134,7 +171,12 @@ const LOCAL={
   boePhone:'',          // e.g. '(740) 555-0100'
   partyMeeting:'The county party meets monthly at FairDems HQ, 118 N. Columbus St., Lancaster.',      // e.g. 'Second Tuesday of each month, 7 p.m., at ...'
   partyContact:'Email info@fairdems.com.',      // e.g. 'Email chair@example.org'
-  partyUrl:'https://fairdems.com/upcoming-events/'
+  partyUrl:'https://fairdems.com/upcoming-events/',
+  // Recruiting: where "I'm interested" sign-ups go.
+  recruitEmail:'info@fairdems.com',   // used when recruitEndpoint is blank (opens the person's email app)
+  recruitEndpoint:'',                 // optional: a Google Apps Script or Cloudflare Worker URL that saves sign-ups
+  shareBase:'https://elections43130.github.io/FindMyRepSeats/',  // links people share point here
+  seatStatusAsOf:'Board of Elections, September 2026'
 };
 // =============================================================
 const FORM=c=>`https://www.ohiosos.gov/globalassets/elections/forms/${c}.pdf`;
@@ -558,6 +600,62 @@ function guideHTML(x){const [key,lvl,name,seats,ne,when,held,ballot,pay,di,note]
    ${g===GUIDES.pct&&LOCAL.partyMeeting?`<h4>Come to a meeting first</h4><p>${esc(LOCAL.partyMeeting)}${LOCAL.partyContact?' '+esc(LOCAL.partyContact):''}${LOCAL.partyUrl?` <a href="${LOCAL.partyUrl}" target="_blank" rel="noopener">More info</a>`:''}</p>`:''}
    <h4>Pay</h4><p>${esc(pay)}</p>
    ${note?`<p class="note">${esc(note)}</p>`:''}</div></details>`}
+
+// ===== Recruiting =====
+const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function shareUrl(pct){const base=LOCAL.shareBase||(location.origin+location.pathname);const u=new URL(base);u.searchParams.set('precinct',pct);return u.toString()}
+function recruitHTML(pct){return `<div class="rbox">
+ <div class="rbtns"><button type="button" class="rbtn" data-r="int">I'm interested</button><button type="button" class="rbtn2" data-r="share">Know someone? Share this seat</button></div>
+ <div class="rshare" hidden></div>
+ <form class="rform" hidden novalidate>
+  <p class="chip">Precinct: <b>${esc(tc(pct))}</b></p>
+  <label>Your name<input name="name" autocomplete="name" required></label>
+  <label>Email<input name="email" type="email" autocomplete="email" required></label>
+  <label><span>Phone <small>(optional)</small></span><input name="phone" type="tel" autocomplete="tel"></label>
+  <label><span>Anything you'd like us to know? <small>(optional)</small></span><textarea name="note" rows="2"></textarea></label>
+  <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+  <p class="rerr" aria-live="polite"></p>
+  <div><button type="submit" class="rbtn">Send</button></div>
+  <small>This goes to the Fairfield County Democratic Party along with your precinct and the address you looked up. We'll only use it to talk with you about the seat.</small>
+ </form>
+ <div class="rdone" hidden aria-live="polite"></div></div>`}
+function wireRecruit(box,pct,label){
+ const form=box.querySelector('.rform'),done=box.querySelector('.rdone'),sh=box.querySelector('.rshare'),P=tc(pct);
+ box.querySelector('[data-r=int]').onclick=()=>{form.hidden=!form.hidden;sh.hidden=true;if(!form.hidden)form.querySelector('input[name=name]').focus()};
+ box.querySelector('[data-r=share]').onclick=async()=>{form.hidden=true;const url=shareUrl(pct);
+   const text=`The Democratic Central Committee seat for ${P} is open. It's the easiest first step into local politics, and the party can appoint someone right now. See what it involves:`;
+   if(navigator.share){try{await navigator.share({title:'Open Central Committee seat: '+P,text,url});return}catch(e){if(e&&e.name==='AbortError')return}}
+   sh.hidden=false;sh.innerHTML=`<p>Send this link to someone who lives in ${esc(P)}:</p><div class="rlink"><input readonly value="${esc(url)}" aria-label="Link to share"><button type="button" class="rbtn2">Copy</button></div><p class="rcopied" aria-live="polite"></p>`;
+   const inp=sh.querySelector('input'),msg=sh.querySelector('.rcopied');inp.focus();inp.select();
+   sh.querySelector('button').onclick=async()=>{inp.select();let ok=false;try{await navigator.clipboard.writeText(url);ok=true}catch(e){try{ok=document.execCommand('copy')}catch(e2){}}
+     msg.textContent=ok?'Copied. Paste it into a text, email, or post.':'Select the link above and copy it.'}};
+ form.onsubmit=e=>{e.preventDefault();const f=new FormData(form);if(f.get('website'))return;
+   const name=(f.get('name')||'').trim(),email=(f.get('email')||'').trim(),phone=(f.get('phone')||'').trim(),note=(f.get('note')||'').trim();
+   const err=form.querySelector('.rerr');
+   if(!name){err.textContent='Please add your name.';return} if(!EMAIL_RE.test(email)){err.textContent='Please add a working email address.';return} err.textContent='';
+   const payload={name,email,phone,note,precinct:pct,lookedUp:label,submitted:new Date().toISOString()};
+   const fallback=`<a href="mailto:${esc(LOCAL.recruitEmail)}">${esc(LOCAL.recruitEmail)}</a>`;
+   const finish=html=>{form.hidden=true;box.querySelector('.rbtns').hidden=true;done.hidden=false;done.innerHTML=html};
+   if(LOCAL.recruitEndpoint){const b=form.querySelector('button[type=submit]');b.disabled=true;b.textContent='Sending…';
+     fetch(LOCAL.recruitEndpoint,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)})
+      .then(()=>finish(`<p><b>Thanks, ${esc(name.split(' ')[0])}!</b> Someone from the Fairfield County Democratic Party will reach out soon about the ${esc(P)} seat.</p>`))
+      .catch(()=>{b.disabled=false;b.textContent='Send';err.innerHTML=`That didn't go through. Try again, or email ${fallback} and mention precinct ${esc(P)}.`})}
+   else{const sub=`Central Committee interest: ${P}`;
+     const body=`Hi! I'm interested in the Democratic Central Committee seat for ${P}.\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone||'(not given)'}\nAddress I looked up: ${label}${note?'\n\n'+note:''}`;
+     const a=document.createElement('a');a.href=`mailto:${LOCAL.recruitEmail}?subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(body)}`;document.body.appendChild(a);a.click();a.remove();
+     finish(`<p><b>Almost done, ${esc(name.split(' ')[0])}.</b> Your email app should open with everything filled in. Just hit send.</p><p>Didn't open? Email ${fallback} and mention precinct ${esc(P)}.</p>`)}};
+}
+function drawOpenSeats(){const box=$('#openseats');if(!box)return;
+ const rows=DATA.precincts.map(p=>{const s=DATA.seats.find(x=>x[0]==='PCT:'+p[0]);return {p,open:!!s&&s[6]==='OPEN'}});
+ const total=rows.length,open=rows.filter(r=>r.open).length,filled=total-open;
+ box.innerHTML=`<div class="oscard"><h2>${open} precincts need a Central Committee member</h2>
+  <p>Every precinct in Fairfield County gets a seat on the Democratic Party's central committee.${open/total>0.5?' More than half of them are empty right now.':''} Filling one takes no signatures and no filing fee, and the party can fill open seats by appointment, no election needed.</p>
+  <div class="bar" role="img" aria-label="${filled} filled, ${open} open"><span style="width:${(filled/total*100).toFixed(1)}%"></span></div>
+  <p class="barlbl"><span><i class="kf"></i><b>${filled}</b> filled</span><span><i class="ko"></i><b>${open}</b> open</span></p>
+  <p>Look up your address above to see if your seat is open. Not sure, or want to talk it over first? <a href="mailto:${LOCAL.recruitEmail}?subject=${encodeURIComponent('Central Committee interest')}">Email us</a> and we'll help you find your precinct.</p>
+  <p class="asof">Seat status from the ${esc(LOCAL.seatStatusAsOf)}. Recent appointments may not show yet.</p></div>`;
+}
+
 function render(styleId,label,splitWarn){const s=DATA.styles[styleId-1];const [pct,city,ward,twp,vill,sd,escd,hd]=s;
   const keys=new Set(['ALL','HD'+hd,'PCT:'+pct]);if(city)keys.add('CITY:'+city);if(ward)keys.add('WARD:'+ward);if(twp)keys.add('TWP:'+twp);if(vill)keys.add('VILL:'+vill);if(sd)keys.add('SD:'+sd);if(escd)keys.add('ESC:'+escd);
   const mine=DATA.seats.filter(x=>keys.has(x[0]));
@@ -577,7 +675,7 @@ function render(styleId,label,splitWarn){const s=DATA.styles[styleId-1];const [p
    <p style="margin-top:6px;font-size:.9rem">Each office is tagged by campaign size, from <b>Starter</b> to <b>Major campaign</b>. Most people start small.</p>
    ${splitWarn?'<p style="color:var(--red);margin-top:8px">This precinct is split. A few local offices may differ, so use your address for an exact answer.</p>':''}
    <dl>${rows.map(r=>`<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl></div>`;
-  if(open)h+=`<div class="open"><div class="oval fill" aria-hidden="true"></div><p><b>Your precinct's Democratic committee seat is open.</b> Precinct committee members are the neighborhood backbone of the local party: they meet monthly, help pick party leaders, and help neighbors vote. It's the easiest first run there is, and the county party can appoint someone to it right now. <a href="#" id="pctmore">What the job involves</a></p></div>`;
+  if(open)h+=`<div class="open"><div class="oval fill" aria-hidden="true"></div><div><p><b>Your precinct's Democratic Central Committee seat is open.</b> Central Committee members are the neighborhood backbone of the local party: they meet monthly, help pick party leaders, and help neighbors vote. It's the easiest first run there is, and the county party can appoint someone to it right now. <a href="#" id="pctmore">What the job involves</a></p>${recruitHTML(pct)}</div></div>`;
   for(const g of groups){h+=`<div class="ballot"><h3>${esc(g.head)}<span>${g.rows.length} ${g.rows.length===1?'office':'offices'}</span></h3>`;
     for(const x of g.rows){const [key,lvl,name,seats,ne,when,held,ballot,pay,di,note]=x;const isOpen=held==='OPEN';
       const set26=when.includes('Nov 2026');
@@ -600,7 +698,7 @@ function render(styleId,label,splitWarn){const s=DATA.styles[styleId-1];const [p
    <li>Some offices also require a financial disclosure statement with the <a href="${ETHICS}" target="_blank" rel="noopener">Ohio Ethics Commission</a>.</li>
   </ul>
   <p>File early, but check it yourself first: under Secretary of State Directive 2022-17, boards of elections are not allowed to pre-check petitions. Once it\u2019s filed, it can\u2019t be changed or added to.${LOCAL.boePhone?' Questions? Call '+esc(LOCAL.boePhone)+'.':''}${LOCAL.boeUrl?` <a href="${LOCAL.boeUrl}" target="_blank" rel="noopener">Candidate info from the BOE</a>`:''}</p></div>`;
-  const r=$('#results');r.classList.remove('show');void r.offsetWidth;r.innerHTML=h;r.classList.add('show');r.querySelectorAll('.ovalbtn').forEach(b=>b.onclick=()=>{const d=b.closest('.office').querySelector('details');d.open=!d.open;b.classList.toggle('on',d.open)});r.querySelectorAll('.office details').forEach(d=>d.addEventListener('toggle',()=>{const b=d.closest('.office').querySelector('.ovalbtn');if(b)b.classList.toggle('on',d.open)}));const pm=$('#pctmore');if(pm)pm.onclick=e=>{e.preventDefault();const d=r.querySelector('.ballot details');d.open=true;d.scrollIntoView({behavior:'smooth',block:'center'})}}
+  const r=$('#results');r.classList.remove('show');void r.offsetWidth;r.innerHTML=h;r.classList.add('show');r.querySelectorAll('.ovalbtn').forEach(b=>b.onclick=()=>{const d=b.closest('.office').querySelector('details');d.open=!d.open;b.classList.toggle('on',d.open)});r.querySelectorAll('.office details').forEach(d=>d.addEventListener('toggle',()=>{const b=d.closest('.office').querySelector('.ovalbtn');if(b)b.classList.toggle('on',d.open)}));const rb=r.querySelector('.rbox');if(rb)wireRecruit(rb,pct,label);const pm=$('#pctmore');if(pm)pm.onclick=e=>{e.preventDefault();const d=r.querySelector('.ballot details');d.open=true;d.scrollIntoView({behavior:'smooth',block:'center'})}}
 let t;const q=$('#q');
 const run=()=>{$('#pctq').value='';drawPct();show(resolve(q.value))};
 q.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>{if(/^\s*\d+\s+\S{3,}/.test(q.value))run();else if(!q.value.trim())show({state:'empty'})},350)});
@@ -618,6 +716,8 @@ pq.addEventListener('keydown',e=>{const bs=pl.querySelectorAll('button');if(!bs.
   if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();bs[pctHl]&&bs[pctHl].classList.remove('hl');pctHl=(pctHl+(e.key==='ArrowDown'?1:-1)+bs.length)%bs.length;bs[pctHl].classList.add('hl');bs[pctHl].scrollIntoView({block:'nearest'})}
   if(e.key==='Enter'){e.preventDefault();pickPct(pctHits[pctHl])}});
 drawPct();
+drawOpenSeats();
+{const qp=new URLSearchParams(location.search).get('precinct');if(qp){const k=cmp(qp);const r=PL.find(r=>r.key===k);if(r)pickPct(r)}}
 
 // Auto-resize when embedded: tell the host page how tall we are
 if(window.parent!==window){const send=()=>parent.postMessage({type:'rfs-height',height:Math.ceil(document.body.getBoundingClientRect().height)},'*');
