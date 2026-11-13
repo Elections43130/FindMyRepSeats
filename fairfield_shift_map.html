@@ -36,6 +36,7 @@ svg{width:100%;height:auto;display:block;touch-action:manipulation}
 .panel table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
 .panel td{padding:5px 0;border-top:1px solid var(--line)}
 .panel td:last-child{text-align:right;font-weight:600}
+.back{border:0;background:var(--chip);color:var(--ink);font:600 13px Inter,system-ui,sans-serif;padding:6px 10px;border-radius:8px;cursor:pointer;margin-bottom:10px;min-height:32px}
 .panel .yr{color:var(--muted);font-size:12px;width:42px}
 .bar{height:8px;border-radius:4px;background:#f4a582;overflow:hidden;margin-top:3px;display:flex}
 .bar i{display:block;background:#4393c3;height:100%}
@@ -93,16 +94,30 @@ const inF=p=>(!DIST[race]||p.d===DIST[race])&&(filt==='all'||(filt==='lan'?p.n.s
 const tip=document.getElementById('tip');
 D.p.forEach(p=>{p.el=mk(p.path,{class:'pc'});
   p.el.addEventListener('mousemove',e=>{tip.textContent=!inF(p)&&DIST[race]?`${p.n}: not in this district`:Y().unc?`${p.n}: LaRe unopposed`:`${p.n}: ${Y().dem} ${pct(sh(val(p,Y().k)))}`;tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY+12)+'px';tip.style.opacity=1;show(p,false)});
-  p.el.addEventListener('mouseleave',()=>{tip.style.opacity=0;if(sel)show(sel,true)});
-  p.el.addEventListener('click',()=>{if(sel)sel.el.classList.remove('sel');sel=p;p.el.classList.add('sel');show(p,true)});});
+  p.el.addEventListener('mouseleave',()=>{tip.style.opacity=0;sel?show(sel,true):summary()});
+  p.el.addEventListener('click',ev=>{ev.stopPropagation();if(sel===p)return clearSel();if(sel)sel.el.classList.remove('sel');sel=p;p.el.classList.add('sel');show(p,true)});});
+function clearSel(){if(sel)sel.el.classList.remove('sel');sel=null;summary()}
+svg.addEventListener('click',clearSel);document.addEventListener('keydown',e=>{if(e.key==='Escape')clearSel()});
 mk(D.hd73,{fill:'none',stroke:'#1d2433','stroke-width':1.6,'stroke-dasharray':'5 3','pointer-events':'none',id:'o73','vector-effect':'non-scaling-stroke'});
 mk(D.outline,{fill:'none',stroke:'#1d2433','stroke-width':1.6,'pointer-events':'none','vector-effect':'non-scaling-stroke'});
 const lanO=mk(D.lan,{fill:'none',stroke:'#1d2433','stroke-width':2,'pointer-events':'none',opacity:0,'vector-effect':'non-scaling-stroke'});
 document.getElementById('legend').innerHTML=BINS.map(b=>`<span><i style="background:${b[2]}"></i>${b[3]}</span>`).join('')+'<span><i style="border:1.6px dashed #1d2433;background:none"></i>HD 73</span>';
 function row(lbl,yr,v,dem){if(!v)return'';const s=sh(v);return `<tr><td class="yr">${yr}</td><td>${lbl}<div class="bar"><i style="width:${(100*s).toFixed(1)}%"></i></div></td><td>${dem} ${pct(s)}</td></tr>`}
+
+function areaName(){if(filt==='lan')return 'Lancaster';if(filt==='73'||race==='h73')return 'HD 73';if(filt==='69'||race==='h69')return 'HD 69';return 'Fairfield County'}
+function summary(){const ps=D.p.filter(inF),S={};let reg=0,cast=0;
+  const keys=['g22','s22','c22','p24','s24','c24','g26','s26','c26','h22','h24','h26'];
+  ps.forEach(p=>{reg+=p.reg;cast+=p.cast;keys.forEach(k=>{const v=k.endsWith('22')?tot22(p,k):p[k];if(!v)return;S[k]=S[k]||[0,0];S[k][0]+=v[0];S[k][1]+=v[1]})});
+  const an=areaName(),d=an==='HD 69'?69:(an==='HD 73'||an==='Lancaster')?73:0;
+  const house=d==73?`<tr><td class="yr">2022</td><td>Ohio House 73</td><td>LaRe unopposed</td></tr>${row('Ohio House 73','2024',S.h24,'Scarmack')}${row('Ohio House 73','2026',S.h26,'Wood')}`:d==69?`${row('Ohio House 69','2022',S.h22,'Owens')}${row('Ohio House 69','2024',S.h24,'Hough')}${row('Ohio House 69','2026',S.h26,'Rigsby')}`:'';
+  document.getElementById('panel').innerHTML=`<h3>${an}</h3><div class="meta">${ps.length} precincts · ${reg.toLocaleString()} registered · ${pct(cast/reg)} turnout in 2026</div><table>
+  ${row('Governor','2022',S.g22,'Whaley')}${row('U.S. Senate','2022',S.s22,'Ryan')}${row('OH-12','2022',S.c22,'Rippel-Elton')}
+  ${row('President','2024',S.p24,'Harris')}${row('U.S. Senate','2024',S.s24,'Brown')}${row('OH-12','2024',S.c24,'Christian')}
+  ${row('Governor','2026',S.g26,'Acton')}${row('U.S. Senate','2026',S.s26,'Brown')}${row('OH-12','2026',S.c26,'Christian')}${house}</table>
+  <div class="meta" style="margin-top:10px">Hover or tap a precinct for its own numbers.</div>`}
 function show(p,pin){const hdName=p.d==73?'Wood':'Rigsby';
   const g22=p.g22||p.g22e, s22=p.s22||p.s22e, c22=p.c22||p.c22e, sft=race==='sen'?sh(p.s26)-sh(p.s24):race==='cong'?sh(p.c26)-sh(p.c24):DIST[race]?sh(p.h26)-sh(p.h24):sh(p.g26)-sh(p.p24);
-  document.getElementById('panel').innerHTML=`<h3>${p.n}</h3><div class="meta">${p.c} · HD ${p.d} · ${p.reg.toLocaleString()} registered · ${pct(p.cast/p.reg)} turnout in 2026</div><table>
+  document.getElementById('panel').innerHTML=`${pin?`<button class="back" onclick="clearSel()">&larr; Back to ${areaName()}</button>`:''}<h3>${p.n}</h3><div class="meta">${p.c} · HD ${p.d} · ${p.reg.toLocaleString()} registered · ${pct(p.cast/p.reg)} turnout in 2026</div><table>
   ${row('Governor'+(p.g22?'':' *'),'2022',g22,'Whaley')}${row('U.S. Senate'+(p.s22?'':' *'),'2022',s22,'Ryan')}${row('OH-12'+(p.c22?'':' *'),'2022',c22,'Rippel-Elton')}${row('President','2024',p.p24,'Harris')}${row('U.S. Senate','2024',p.s24,'Brown')}${row('OH-12','2024',p.c24,'Christian')}
   ${row('Governor','2026',p.g26,'Acton')}${row('U.S. Senate','2026',p.s26,'Brown')}${row('OH-12','2026',p.c26,'Christian')}${p.d==73?'<tr><td class="yr">2022</td><td>Ohio House 73</td><td>LaRe unopposed</td></tr>':row('Ohio House 69'+(p.h22?'':' *'),'2022',p.h22||p.h22e,'Owens')}${row('Ohio House '+p.d,'2024',p.h24,p.d==73?'Scarmack':'Hough')}${row('Ohio House '+p.d,'2026',p.h26,hdName)}</table>
   <div class="shift" style="color:${sft>=0?'#2166ac':'#b2182b'}">${sft>=0?'+':''}${(100*sft).toFixed(1)} pts toward Democrats since 2024, ${race==='sen'?'Senate':race==='cong'?'OH-12':DIST[race]?'Ohio House':'top of ticket'}</div>${p.g22?'':'<div class="meta" style="margin-top:6px">* '+(p.n.startsWith('Lithopolis')?'Lithopolis was one precinct in 2022; shows the whole village':'2022 shown for the precinct this one was split from')+'</div>'}`}
@@ -129,7 +144,7 @@ function draw(){
   document.getElementById('sWonL').textContent='precincts won';
   syncUI();}
 function syncUI(){document.querySelectorAll('#yearSeg button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.y===yi));document.getElementById('raceSel').value=race;
-  document.querySelectorAll('.chips button').forEach(b=>{b.setAttribute('aria-pressed',b.dataset.f===filt);b.disabled=!!DIST[race]&&!(b.dataset.f==='all'||b.dataset.f==String(DIST[race])||(b.dataset.f==='lan'&&race==='h73'))});if(sel)show(sel,true);
+  document.querySelectorAll('.chips button').forEach(b=>{b.setAttribute('aria-pressed',b.dataset.f===filt);b.disabled=!!DIST[race]&&!(b.dataset.f==='all'||b.dataset.f==String(DIST[race])||(b.dataset.f==='lan'&&race==='h73'))});if(sel&&!inF(sel)){sel.el.classList.remove('sel');sel=null}sel?show(sel,true):summary();
   document.querySelectorAll('.chips button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.f===filt));}
 document.querySelectorAll('#yearSeg button').forEach(b=>b.onclick=()=>{stop();yi=+b.dataset.y;draw()});
 document.getElementById('raceSel').onchange=e=>{race=e.target.value;if(DIST[race]&&filt!=='all'&&filt!=String(DIST[race])&&!(filt==='lan'&&race==='h73'))filt='all';draw();zoomTo()};
