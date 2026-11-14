@@ -69,19 +69,20 @@ const SL={open:'Empty seats',unopposed:'No race',contested:'Real race'};
 let fS='all',fK='all',q='';
 const cnt=s=>O.filter(o=>o.status===s).length;
 document.getElementById('stats').innerHTML=`<div class="st"><div class="v">${O.length}</div><div class="k">jobs on the 2027 ballot</div></div><div class="st open"><div class="v">${cnt('open')}</div><div class="k">had empty seats: not enough people ran</div></div><div class="st"><div class="v">${cnt('unopposed')}</div><div class="k">had no race: one person for each seat</div></div><div class="st"><div class="v">${cnt('contested')}</div><div class="k">had a real race</div></div>`;
-function hist(o){return o.history.slice().reverse().map(h=>`<tr><td class="yr" colspan="2">${h.year}: ${h.seats} seat${h.seats>1?'s':''} open, ${h.nfiled} ran, ${fmt(h.cast||0)} people voted</td></tr>`+(h.cands.length?h.cands.map(c=>`<tr><td>${c.name}${c.party?' ('+c.party+')':''}</td><td>${fmt(c.votes)}</td></tr>`).join(''):'<tr><td colspan="2">Nobody was on the ballot</td></tr>')).join('')}
+function hist(o){return o.history.slice().reverse().map(h=>`<tr><td class="yr" colspan="2">${h.year}: ${h.seats} seat${h.seats>1?'s':''} open, ${h.nfiled} ran. ${fmt(h.cast||0)} people voted in the whole election.</td></tr>`+(h.cands.length?h.cands.map(c=>`<tr><td>${c.name}${c.party?' ('+c.party+')':''}</td><td>${fmt(c.votes)}</td></tr>`).join(''):'<tr><td colspan="2">Nobody was on the ballot</td></tr>')).join('')}
 function card(o){const l=o.last,b=o.base,yr=o.baseyr;
  const seats=l?l.seats:1, ran=l?l.nfiled:0;
  const ranTxt=ran===0?'Nobody ran.':ran===1?'Only 1 person ran.':`${ran} people ran.`;
  const winners=l&&l.cands.length?l.cands.slice(0,seats).map(c=>`${c.name} with ${fmt(c.votes)} votes`).join(', '):'nobody';
- const why=o.how.startsWith('half')?'That is half of the people who voted last time, plus 1.':o.how.startsWith('beat')?'That is 1 more vote than the person who won the last seat.':(ran===0?'Nobody ran last time':'Not enough people ran last time')+', so this is a guess: about 1 out of every 4 voters.';
+ const place=o.office.startsWith('Council Ward')?'Lancaster Ward '+o.office.slice(-1):o.juris, cast=l&&l.cast?l.cast:b.voted, lastW=l&&l.cands.length>=seats?l.cands[seats-1]:null;
+ const why=o.how.startsWith('half')?`${fmt(cast)} people in ${place} voted in the whole ${l?l.year:''} election. Half of them, plus 1, is ${fmt(o.target)}.`:o.how.startsWith('beat')?`The person who won the last seat got ${fmt(lastW?lastW.votes:o.target-1)} votes. You need 1 more than that.`:(ran===0?'Nobody ran last time':'Not enough people ran last time')+`, so this is a guess: about 1 out of every 4 of the ${fmt(cast)} people in ${place} who voted.`;
  const max=Math.max(o.target,b.D)*1.08,pB=100*b.D/max,pT=100*o.target/max;
  let ask;
  if(o.gap<=0) ask=`Good news! The Democrats who already vote here (${fmt(b.D)}) are enough to win. You just need to sign up to run.`;
  else ask=`You need about <b>${fmt(o.gap)}</b> more votes. Where to find them: ${fmt(b.sleepD)} Turn-out Democrat${b.sleepD==1?'':'s'} and ${fmt(b.U)} voter${b.U==1?'':'s'} who do not pick a party.`;
  const note=o.note.startsWith('2025 also')?`In 2025, ${o.note.match(/had (\d+)/)[1]} more seat(s) here were open and nobody ran. Those seats come up again in 2027 too.`:o.note.startsWith('Staggered')?'Pickerington takes turns: 3 seats are up one time, 4 seats the next. 2027 should be a 3-seat year.':o.note;
  return `<div class="card"><div class="j">${o.juris} · ${o.kind}</div><h3>${o.office}<span class="tag t-${o.status}">${SL[o.status]}</span></h3>
- <p class="line">Last time, in ${l?l.year:'n/a'}: ${seats} seat${seats>1?'s were':' was'} open. ${ranTxt}</p>
+ <p class="line">Last time, in ${l?l.year:'n/a'}: ${seats} seat${seats>1?'s were':' was'} open. ${ranTxt} ${fmt(cast)} people in ${place} voted that day.</p>
  <p class="line">Who won: ${winners}.</p>
  <p class="line">Votes you need to win: <b>${fmt(o.target)}</b>. <span style="color:var(--muted)">${why}</span></p>
  <div class="bar"><i style="width:${pB}%"></i><u style="left:${pT}%"></u></div><div class="bl"><span>Democrats here who voted in ${yr}: ${fmt(b.D)}</span><span>Votes to win: ${fmt(o.target)}</span></div>
