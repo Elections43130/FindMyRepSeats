@@ -37,7 +37,7 @@ table{width:100%;border-collapse:collapse;margin-top:6px;font-variant-numeric:ta
 <h1>2027 Local Playbook</h1>
 <p class="sub">In 2027, people in Fairfield County will vote for their city and village leaders. This page shows every one of those jobs. It shows who won last time, how many votes they got, and how many Democrats in that town usually vote. <b>Look at the blue cards first.</b> Those are seats where not enough people ran. Some of them had nobody at all.</p>
 <div class="gloss"><h2>What the words on this page mean</h2><dl>
-<dt><span class="tag t-open" style="margin:0">Empty seats</span></dt><dd>Not enough people ran last time. Some seats had nobody at all.</dd>
+<dt><span class="tag t-open" style="margin:0">Empty seats</span></dt><dd>Not enough people ran last time. Some seats had nobody at all. If you sign up for one of these and nobody else does, you win.</dd>
 <dt><span class="tag t-unopposed" style="margin:0">No race</span></dt><dd>Only one person ran for each seat, so they won without a fight.</dd>
 <dt><span class="tag t-contested" style="margin:0">Real race</span></dt><dd>More people ran than there were seats.</dd>
 <dt>Votes you need to win</dt><dd>Our best guess of how many votes it takes, based on last time.</dd>
@@ -55,7 +55,7 @@ table{width:100%;border-collapse:collapse;margin-top:6px;font-variant-numeric:ta
 <div class="fn"><b>How we got these numbers</b><br>
 1. Election results come from the Fairfield County Board of Elections for 2021, 2023 and 2025. Voter counts come from the county voter list.<br>
 2. "Last time" means the last election for the same seats. Lancaster council and president of council serve 2 years, so we used 2025. Mayors, the other Lancaster city offices, Pickerington council and village councils serve 4 years, so we used 2023.<br>
-3. "Votes you need to win": if there is 1 seat, it is half of the people who voted last time, plus 1. If there are several seats, it is 1 more vote than the person who won the last seat.<br>
+3. Empty seats: if the number of people on the ballot is the same as or less than the number of seats, everyone on the ballot wins. Someone could still sign up as a write-in candidate, so check with the Board of Elections close to the deadline. "Votes you need to win": if there is 1 seat, it is half of the people who voted last time, plus 1. If there are several seats, it is 1 more vote than the person who won the last seat.<br>
 4. "Democrats here who voted" means people whose last primary ballot was a Democratic one and who voted in that odd year. People who never pick a party are not counted there. Most of these races do not list a party on the ballot, so being a good neighbor matters more than party.<br>
 5. "Turn-out Democrats" voted in the 2024 election for president but did not vote in that odd year.<br>
 6. Lots of extra people voted in 2023 because of the abortion and marijuana questions. So the 2023 numbers may be higher than 2027 will be.<br>
@@ -78,14 +78,18 @@ function card(o){const l=o.last,b=o.base,yr=o.baseyr;
  const why=o.how.startsWith('half')?`${fmt(cast)} people in ${place} voted in the whole ${l?l.year:''} election. Half of them, plus 1, is ${fmt(o.target)}.`:o.how.startsWith('beat')?`The person who won the last seat got ${fmt(lastW?lastW.votes:o.target-1)} votes. You need 1 more than that.`:(ran===0?'Nobody ran last time':'Not enough people ran last time')+`, so this is a guess: about 1 out of every 4 of the ${fmt(cast)} people in ${place} who voted.`;
  const max=Math.max(o.target,b.D)*1.08,pB=100*b.D/max,pT=100*o.target/max;
  let ask;
- if(o.gap<=0) ask=`Good news! The Democrats who already vote here (${fmt(b.D)}) are enough to win. You just need to sign up to run.`;
+ if(o.status==='open') ask=o.gap<=0?`Even in a real race, the Democrats who already vote here (${fmt(b.D)}) are enough. Step 1 is simply signing up to run.`:`Step 1 is simply signing up to run. If it turns into a real race, you would need about ${fmt(o.gap)} more votes: ${fmt(b.sleepD)} Turn-out Democrat${b.sleepD==1?'':'s'} and ${fmt(b.U)} voter${b.U==1?'':'s'} who do not pick a party are the pool.`;
+ else if(o.gap<=0) ask=`Good news! The Democrats who already vote here (${fmt(b.D)}) are enough to win. You just need to sign up to run.`;
  else ask=`You need about <b>${fmt(o.gap)}</b> more votes. Where to find them: ${fmt(b.sleepD)} Turn-out Democrat${b.sleepD==1?'':'s'} and ${fmt(b.U)} voter${b.U==1?'':'s'} who do not pick a party.`;
  const note=o.note.startsWith('2025 also')?`In 2025, ${o.note.match(/had (\d+)/)[1]} more seat(s) here were open and nobody ran. Those seats come up again in 2027 too.`:o.note.startsWith('Staggered')?'Pickerington takes turns: 3 seats are up one time, 4 seats the next. 2027 should be a 3-seat year.':o.note;
  return `<div class="card"><div class="j">${o.juris} · ${o.kind}</div><h3>${o.office}<span class="tag t-${o.status}">${SL[o.status]}</span></h3>
  <p class="line">Last time, in ${l?l.year:'n/a'}: ${seats} seat${seats>1?'s were':' was'} open. ${ranTxt} ${fmt(cast)} people in ${place} voted that day.</p>
  <p class="line">Who won: ${winners}.</p>
- <p class="line">Votes you need to win: <b>${fmt(o.target)}</b>. <span style="color:var(--muted)">${why}</span></p>
- <div class="bar"><i style="width:${pB}%"></i><u style="left:${pT}%"></u></div><div class="bl"><span>Democrats here who voted in ${yr}: ${fmt(b.D)}</span><span>Votes to win: ${fmt(o.target)}</span></div>
+ ${o.status==='open'
+   ?`<p class="line" style="font-size:16px;color:var(--ink)"><b>If you sign up and nobody else does, you win.</b> There are more seats than people running, so even your own vote is enough.</p>
+     <p class="line">Just in case more people sign up and it turns into a real race, plan on about <b>${fmt(o.target)}</b> votes. <span style="color:var(--muted)">${why}</span></p>`
+   :`<p class="line">Votes you need to win: <b>${fmt(o.target)}</b>. <span style="color:var(--muted)">${why}</span></p>`}
+ <div class="bar"><i style="width:${pB}%"></i><u style="left:${pT}%"></u></div><div class="bl"><span>Democrats here who voted in ${yr}: ${fmt(b.D)}</span><span>${o.status==='open'?'Votes if it becomes a real race':'Votes to win'}: ${fmt(o.target)}</span></div>
  <div class="ask">${ask}</div>
  ${note?`<div class="note">${note}</div>`:''}
  <details><summary>See every result from 2021 to 2025</summary><table>${hist(o)}</table></details></div>`}
