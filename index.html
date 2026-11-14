@@ -93,6 +93,9 @@ footer a{color:var(--mark);font-weight:600}
 .rbox{margin-top:12px}
 .rbtns{display:flex;flex-wrap:wrap;gap:8px}
 .rbtn{background:var(--red);color:#fff;border:2px solid var(--red);padding:9px 16px}
+.open a.rbtn,a.rbtn{color:#fff;display:inline-block;text-decoration:none;font-weight:600;border-radius:10px}
+.rmail{margin:8px 0 0;font-size:.92rem}
+.open>div:last-child{min-width:0;flex:1}
 .rbtn:hover{filter:brightness(1.08)}.rbtn:disabled{opacity:.6;cursor:wait}
 .rbtn2{background:var(--card);color:var(--red);border:2px solid var(--red);padding:9px 16px}
 .rform{margin-top:12px;display:grid;gap:10px;background:var(--card);border-radius:10px;padding:16px;border:1px solid var(--rule);max-width:520px}
@@ -604,46 +607,21 @@ function guideHTML(x){const [key,lvl,name,seats,ne,when,held,ballot,pay,di,note]
 // ===== Recruiting =====
 const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function shareUrl(pct){const base=LOCAL.shareBase||(location.origin+location.pathname);const u=new URL(base);u.searchParams.set('precinct',pct);return u.toString()}
-function recruitHTML(pct){return `<div class="rbox">
- <div class="rbtns"><button type="button" class="rbtn" data-r="int">I'm interested</button><button type="button" class="rbtn2" data-r="share">Know someone? Share this seat</button></div>
- <div class="rshare" hidden></div>
- <form class="rform" hidden novalidate>
-  <p class="chip">Precinct: <b>${esc(tc(pct))}</b></p>
-  <label>Your name<input name="name" autocomplete="name" required></label>
-  <label>Email<input name="email" type="email" autocomplete="email" required></label>
-  <label><span>Phone <small>(optional)</small></span><input name="phone" type="tel" autocomplete="tel"></label>
-  <label><span>Anything you'd like us to know? <small>(optional)</small></span><textarea name="note" rows="2"></textarea></label>
-  <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
-  <p class="rerr" aria-live="polite"></p>
-  <div><button type="submit" class="rbtn">Send</button></div>
-  <small>This goes to the Fairfield County Democratic Party along with your precinct and the address you looked up. We'll only use it to talk with you about the seat.</small>
- </form>
- <div class="rdone" hidden aria-live="polite"></div></div>`}
+function recruitHTML(pct){const P=tc(pct),em=LOCAL.recruitEmail;
+ const href=`mailto:${em}?subject=${encodeURIComponent('Central Committee: '+P)}&body=${encodeURIComponent(`Hi! I'm interested in the Democratic Central Committee seat for ${P}.\n\nName:\nPhone:\n`)}`;
+ return `<div class="rbox">
+ <div class="rbtns"><a class="rbtn" href="${esc(href)}">Email us to get started</a><button type="button" class="rbtn2" data-r="share">Know someone? Share this seat</button></div>
+ <p class="rmail">Write to <a href="${esc(href)}">${esc(em)}</a> and mention precinct ${esc(P)}.</p>
+ <div class="rshare" hidden></div></div>`}
 function wireRecruit(box,pct,label){
- const form=box.querySelector('.rform'),done=box.querySelector('.rdone'),sh=box.querySelector('.rshare'),P=tc(pct);
- box.querySelector('[data-r=int]').onclick=()=>{form.hidden=!form.hidden;sh.hidden=true;if(!form.hidden)form.querySelector('input[name=name]').focus()};
- box.querySelector('[data-r=share]').onclick=async()=>{form.hidden=true;const url=shareUrl(pct);
+ const sh=box.querySelector('.rshare'),P=tc(pct);
+ box.querySelector('[data-r=share]').onclick=async()=>{const url=shareUrl(pct);
    const text=`The Democratic Central Committee seat for ${P} is open. It's the easiest first step into local politics, and the party can appoint someone right now. See what it involves:`;
    if(navigator.share){try{await navigator.share({title:'Open Central Committee seat: '+P,text,url});return}catch(e){if(e&&e.name==='AbortError')return}}
    sh.hidden=false;sh.innerHTML=`<p>Send this link to someone who lives in ${esc(P)}:</p><div class="rlink"><input readonly value="${esc(url)}" aria-label="Link to share"><button type="button" class="rbtn2">Copy</button></div><p class="rcopied" aria-live="polite"></p>`;
    const inp=sh.querySelector('input'),msg=sh.querySelector('.rcopied');inp.focus();inp.select();
    sh.querySelector('button').onclick=async()=>{inp.select();let ok=false;try{await navigator.clipboard.writeText(url);ok=true}catch(e){try{ok=document.execCommand('copy')}catch(e2){}}
      msg.textContent=ok?'Copied. Paste it into a text, email, or post.':'Select the link above and copy it.'}};
- form.onsubmit=e=>{e.preventDefault();const f=new FormData(form);if(f.get('website'))return;
-   const name=(f.get('name')||'').trim(),email=(f.get('email')||'').trim(),phone=(f.get('phone')||'').trim(),note=(f.get('note')||'').trim();
-   const err=form.querySelector('.rerr');
-   if(!name){err.textContent='Please add your name.';return} if(!EMAIL_RE.test(email)){err.textContent='Please add a working email address.';return} err.textContent='';
-   const payload={name,email,phone,note,precinct:pct,lookedUp:label,submitted:new Date().toISOString()};
-   const fallback=`<a href="mailto:${esc(LOCAL.recruitEmail)}">${esc(LOCAL.recruitEmail)}</a>`;
-   const finish=html=>{form.hidden=true;box.querySelector('.rbtns').hidden=true;done.hidden=false;done.innerHTML=html};
-   if(LOCAL.recruitEndpoint){const b=form.querySelector('button[type=submit]');b.disabled=true;b.textContent='Sending…';
-     fetch(LOCAL.recruitEndpoint,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)})
-      .then(()=>finish(`<p><b>Thanks, ${esc(name.split(' ')[0])}!</b> Someone from the Fairfield County Democratic Party will reach out soon about the ${esc(P)} seat.</p>`))
-      .catch(()=>{b.disabled=false;b.textContent='Send';err.innerHTML=`That didn't go through. Try again, or email ${fallback} and mention precinct ${esc(P)}.`})}
-   else{const sub=`Central Committee interest: ${P}`;
-     const body=`Hi! I'm interested in the Democratic Central Committee seat for ${P}.\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone||'(not given)'}\nAddress I looked up: ${label}${note?'\n\n'+note:''}`;
-     const a=document.createElement('a');a.href=`mailto:${LOCAL.recruitEmail}?subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(body)}`;document.body.appendChild(a);a.click();a.remove();
-     finish(`<p><b>Almost done, ${esc(name.split(' ')[0])}.</b> Your email app should open with everything filled in. Just hit send.</p><p>Didn't open? Email ${fallback} and mention precinct ${esc(P)}.</p>`)}};
 }
 function drawOpenSeats(){const box=$('#openseats');if(!box)return;
  const rows=DATA.precincts.map(p=>{const s=DATA.seats.find(x=>x[0]==='PCT:'+p[0]);return {p,open:!!s&&s[6]==='OPEN'}});
