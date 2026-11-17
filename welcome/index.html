@@ -63,7 +63,7 @@ details summary{cursor:pointer;color:var(--slate);font-size:14px}
 </section>
 
 <div id="app" class="hidden">
-<section class="card hidden" id="outbox" style="border:2px solid var(--red)"><h2>Texts to send</h2><p class="muted" style="margin:0 0 6px">Tap <b>Open Messages</b>, check it, and hit send. On an iPad without a phone plan, tap <b>Copy</b> and paste it into a text on your phone.</p><div id="obList"></div></section>
+
 <section class="card" id="c1">
   <h2><span class="n">1</span>Who's here?</h2>
   <div class="say">Hi, welcome! I'm <span class="vname">___</span>. What's your name?</div>
@@ -119,16 +119,6 @@ details summary{cursor:pointer;color:var(--slate);font-size:14px}
   <div class="say">Before you go, would you write a quick postcard to a friend or neighbor? We have the cards and stamps.</div>
   <details><summary>Sample message</summary><div class="sample" id="sample"></div></details>
   <div class="step"><button id="pcMinus" aria-label="One fewer postcard">−</button><b id="pcN">0</b><button id="pcPlus" aria-label="One more postcard">+</button><span class="muted">postcards written</span></div>
-  <div style="margin-top:14px;border-top:1px solid var(--rule);padding-top:10px">
-    <div class="say">Want to write more at home? We'll send you addresses of Democrats in your neighborhood who haven't heard from us yet.</div>
-    <div class="btns" data-group="plist"><button data-v="3">3 addresses</button><button data-v="5">5</button><button data-v="10">10</button><button data-v="20">20</button><button data-v="30">30</button><button data-v="0">No thanks</button></div>
-    <div id="plWrap" class="hidden">
-      <label>How should we send the list?</label>
-      <div class="btns" data-group="plvia"><button data-v="Email">Email</button><button data-v="Text">Text</button></div>
-      <div id="plToWrap" class="hidden"><label for="plTo" id="plToLbl">Email</label><input id="plTo" autocomplete="off"></div>
-      <p class="muted" style="margin:6px 0 0">Email goes out on its own once this device syncs. A text list comes back to this device under <b>Texts to send</b>, ready to send from Messages.</p>
-    </div>
-  </div>
 </section>
 
 <section class="card" id="c7">
@@ -149,8 +139,7 @@ details summary{cursor:pointer;color:var(--slate);font-size:14px}
   <div class="btns"><button class="primary" id="syncNow">Sync now</button></div>
   <details style="margin-top:10px"><summary>More</summary>
   <p class="muted">Sign-ins wait on this device until it has internet, then upload on their own. If a device ever can't connect, download what's waiting and send the file to the table lead.</p>
-  <label>This device sends texts with</label><div class="btns" id="txWith"><button type="button" data-w="messages">Messages app</button><button type="button" data-w="gv">Google Voice</button></div>
-  <div class="btns"><button id="dlQueue">Download sign-ins waiting to upload</button><button id="logout">Change volunteer or PIN</button></div>
+    <div class="btns"><button id="dlQueue">Download sign-ins waiting to upload</button><button id="logout">Change volunteer or PIN</button></div>
   </details>
 </section>
 </div>
@@ -241,7 +230,6 @@ async function sync(manual){if(syncing)return;if(!HAS_API()){lastErr='No Google 
   try{
     while(Q.length){const rec=Q[0];const d=await jsonp({action:'save',pin,rec:JSON.stringify(rec)});
       if(!d||d.ok===false){lastErr=d&&d.error==='pin'?'The PIN changed. Tap More, then Change volunteer or PIN.':'The sheet would not take a sign-in.';throw 0}
-      if(d.plist&&d.plist.text&&d.plist.to)addOut({label:'Postcard list ('+d.plist.count+')',name:d.plist.name,to:d.plist.to,text:d.plist.text});
       Q.shift();LS.set('queue',Q)}
     const d=await jsonp({action:'sync',pin});
     if(!d||d.ok===false){lastErr=d&&d.error==='pin'?'The PIN changed. Tap More, then Change volunteer or PIN.':'Could not read the sheet.';throw 0}
@@ -264,7 +252,7 @@ function download(name,text){const a=document.createElement('a');a.href=URL.crea
 let OUT=LS.get('outbox',[]);
 const IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 function smsHref(to,body){const n=String(to).replace(/[^\d+]/g,'');return 'sms:'+n+(IOS?'&':'?')+'body='+encodeURIComponent(body)}
-function renderOut(){const box=$('#outbox');box.classList.toggle('hidden',!OUT.length);
+function renderOut(){return;const box=$('#outbox');box.classList.toggle('hidden',!OUT.length);
   const gv=LS.get('txWith','messages')==='gv';
   $('#outbox p').innerHTML=gv?'This device texts with <b>Google Voice</b>. Tap <b>Copy number</b>, start a new text in Google Voice and paste it in. Then tap <b>Copy text</b> and paste the message. Send, then tap <b>Sent ✓</b>.':'Tap <b>Open Messages</b>, check it, and hit send. On an iPad without a phone plan, tap <b>Copy</b> and paste it into a text on your phone, or switch this device to Google Voice under More.';
   $('#obList').innerHTML=OUT.map((o,i)=>`<div style="border-top:1px solid var(--rule);padding:8px 0"><b>${esc(o.label)}</b> to ${esc(o.name)} · ${esc(o.to)}<div class="sample" style="margin:6px 0;max-height:120px;overflow:auto">${esc(o.text)}</div><div class="btns">${gv?`<button class="primary" type="button" data-num="${i}">Copy number</button><button class="primary" type="button" data-copy="${i}">Copy text</button>`:`<a href="${smsHref(o.to,o.text)}" style="text-decoration:none"><button class="primary" type="button">Open Messages</button></a><button type="button" data-copy="${i}">Copy</button>`}<button type="button" data-done="${i}">Sent ✓</button></div></div>`).join('');
@@ -272,14 +260,14 @@ function renderOut(){const box=$('#outbox');box.classList.toggle('hidden',!OUT.l
   $('#obList').querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(OUT[+b.dataset.copy].text);toast('Text copied')}catch(e){toast('Press and hold the text to copy it')}});
   $('#obList').querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>{OUT.splice(+b.dataset.done,1);LS.set('outbox',OUT);renderOut()})}
 function txWithUI(){const w=LS.get('txWith','messages');document.querySelectorAll('#txWith button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.w===w?'true':'false'))}
-document.querySelectorAll('#txWith button').forEach(b=>b.onclick=()=>{LS.set('txWith',b.dataset.w);txWithUI();renderOut()});txWithUI();
+LS.set('outbox',[]);
 function addOut(o){OUT.push(o);LS.set('outbox',OUT);renderOut();$('#outbox').scrollIntoView({behavior:'smooth',block:'start'})}
 const WELCOME="Fairfield County Democrats: thanks for signing up for event texts! About 2 messages a month. Message and data rates may apply. Reply STOP to quit or HELP for help.";
 
 // ---- setup ----
 function openApp(){$('#setup').classList.add('hidden');$('#app').classList.remove('hidden');
   document.querySelectorAll('.vname').forEach(e=>e.textContent=LS.get('vol',''));$('#who').textContent='Volunteer: '+LS.get('vol','')+' · '+LS.get('dev','');
-  $('#consentText').textContent=CONSENT;applySettings();renderOut();showCount();syncStatus();reset();sync()}
+  $('#consentText').textContent=CONSENT;applySettings();showCount();syncStatus();reset();sync()}
 $('#go').onclick=async()=>{const v=$('#vol').value.trim(),pin=$('#pin').value.trim(),dev=$('#dev').value.trim();const m=$('#setupMsg');
   if(!v||!pin||!dev){m.textContent='Fill in all three.';m.classList.remove('hidden');return}
   m.textContent='Checking the PIN…';m.classList.remove('hidden');
@@ -289,7 +277,7 @@ $('#go').onclick=async()=>{const v=$('#vol').value.trim(),pin=$('#pin').value.tr
   LS.set('vol',v);LS.set('pin',pin);LS.set('dev',dev);openApp()};
 $('#logout').onclick=()=>{if(Q.length&&!confirm(Q.length+' sign-ins are still waiting to upload. They stay on this device. Continue?'))return;LS.set('vol','');location.reload()};
 $('#syncNow').onclick=()=>sync(true);
-$('#dlQueue').onclick=()=>{if(!Q.length){toast('Nothing waiting');return}download('welcome_table_waiting_'+(LS.get('dev','device').replace(/\W+/g,'_'))+'_'+stamp()+'.csv',toCSV(['ID','Time','Device','Volunteer','First','Last','Address','Precinct','Email','Cell','Newsletter','Texts','Central committee','Run for office','Postcards','Small task','Notes','Postcard list'],Q.map(v=>[v.id,new Date(v.time).toLocaleString(),v.device,v.volunteer,v.first,v.last,v.address,v.precinct,v.email,v.cell,v.newsletter,v.texts,v.cc,v.run,v.postcards,v.task,v.notes,v.plist?v.plist.count+' by '+v.plist.via+' to '+v.plist.to:''])))};
+$('#dlQueue').onclick=()=>{if(!Q.length){toast('Nothing waiting');return}download('welcome_table_waiting_'+(LS.get('dev','device').replace(/\W+/g,'_'))+'_'+stamp()+'.csv',toCSV(['ID','Time','Device','Volunteer','First','Last','Address','Precinct','Email','Cell','Newsletter','Texts','Central committee','Run for office','Postcards','Small task','Notes'],Q.map(v=>[v.id,new Date(v.time).toLocaleString(),v.device,v.volunteer,v.first,v.last,v.address,v.precinct,v.email,v.cell,v.newsletter,v.texts,v.cc,v.run,v.postcards,v.task,v.notes])))};
 
 
 // ---- answer buttons ----
@@ -299,9 +287,7 @@ document.querySelectorAll('[data-group]').forEach(g=>g.querySelectorAll('button'
   const grp=g.dataset.group,v=b.dataset.v;
   if(grp==='newsletter'){$('#nlEmail').classList.toggle('hidden',v!=='Yes');if(v==='Yes')$('#email').focus()}
   if(grp==='texts'){$('#txCell').classList.toggle('hidden',v!=='Yes');if(v==='Yes')$('#cell').focus()}
-  if(grp==='plist'){$('#plWrap').classList.toggle('hidden',v==='0')}
-  if(grp==='plvia'){$('#plToWrap').classList.remove('hidden');const em=v==='Email';$('#plToLbl').textContent=em?'Email':'Cell phone';$('#plTo').type=em?'email':'tel';$('#plTo').inputMode=em?'email':'tel';
-    $('#plTo').value=em?$('#email').value.trim():$('#cell').value.trim();if(!$('#plTo').value)$('#plTo').focus()}
+
   markDone()}));
 function picked(grp){const b=document.querySelector(`[data-group="${grp}"] [aria-pressed="true"]`);return b?b.dataset.v:''}
 function pickedAll(grp){return [...document.querySelectorAll(`[data-group="${grp}"] [aria-pressed="true"]`)].map(b=>b.dataset.v)}
@@ -310,7 +296,7 @@ function markDone(){if(!cur)return;
   $('#c3').classList.toggle('done',cur.texts.on||!!picked('texts'));
   $('#c4').classList.toggle('done',cur.ccSkip||!!picked('cc'));
   $('#c5').classList.toggle('done',!!picked('run'));
-  $('#c6').classList.toggle('done',pc>0||!!picked('plist'))}
+  $('#c6').classList.toggle('done',pc>0)}
 let cur=null,pc=0;function setPc(n){pc=Math.max(0,Math.min(20,n));$('#pcN').textContent=pc;markDone()}
 $('#pcPlus').onclick=()=>setPc(pc+1);$('#pcMinus').onclick=()=>setPc(pc-1);
 
@@ -360,7 +346,7 @@ $('#lookup').onclick=()=>{const first=$('#first').value.trim(),last=$('#last').v
   $('#c2').scrollIntoView({behavior:'smooth',block:'start'})};
 
 // ---- save ----
-function reset(){cur=null;place=null;['first','last','addr','email','cell','notes','plTo'].forEach(id=>$('#'+id).value='');$('#plWrap').classList.add('hidden');$('#plToWrap').classList.add('hidden');$('#addrStatus').innerHTML='';$('#chips').innerHTML='';
+function reset(){cur=null;place=null;['first','last','addr','email','cell','notes'].forEach(id=>$('#'+id).value='');$('#addrStatus').innerHTML='';$('#chips').innerHTML='';
   document.querySelectorAll('[data-group] [aria-pressed]').forEach(b=>b.setAttribute('aria-pressed','false'));$('#nlEmail').classList.add('hidden');$('#txCell').classList.add('hidden');
   setPc(0);$('#steps').classList.add('hidden');$('#bar').classList.add('hidden');$('#lookup').textContent='Look them up';document.querySelectorAll('.card').forEach(c=>c.classList.remove('done'));scrollTo({top:0})}
 function showCount(){const today=new Date().toDateString();const n=(LS.get('count',{})[today])||0;$('#count').textContent=n+(n===1?' person':' people')+' signed in on this device today'}
@@ -369,20 +355,14 @@ $('#save').onclick=()=>{if(!cur){toast('Look them up first');return}
   const nl=cur.newsletter.on?'Already':picked('newsletter'),tx=cur.texts.on?'Already':picked('texts');
   if(nl==='Yes'&&!$('#email').value.trim()){toast('Add their email');$('#email').focus();return}
   if(tx==='Yes'&&!$('#cell').value.trim()){toast('Add their cell number');$('#cell').focus();return}
-  const plN=+picked('plist')||0,plVia=picked('plvia'),plTo=$('#plTo').value.trim();
-  if(plN&&!plVia){toast('Email or text for the postcard list?');return}
-  if(plN&&!plTo){toast(plVia==='Email'?'Add the email for the postcard list':'Add the cell number for the postcard list');$('#plTo').focus();return}
-  if(plN&&!cur.pct){toast('Add their address so we know their precinct');$('#addr').focus();return}
   const time=new Date().toISOString();
   const rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,8),time,device:LS.get('dev',''),volunteer:LS.get('vol',''),first:cur.first,last:cur.last,address:place?place.label:$('#addr').value.trim(),precinct:cur.pct?tc(cur.pct):'',
     email:$('#email').value.trim(),cell:$('#cell').value.trim(),newsletter:nl,texts:tx,consent:tx==='Yes'?CONSENT:'',
-    cc:cur.ccSkip?(cur.cc?cur.cc.status:''):picked('cc'),run:picked('run'),postcards:pc,task:pickedAll('task').join('; '),notes:$('#notes').value.trim().slice(0,1000),plist:plN?{count:plN,via:plVia,to:plTo}:null};
+    cc:cur.ccSkip?(cur.cc?cur.cc.status:''):picked('cc'),run:picked('run'),postcards:pc,task:pickedAll('task').join('; '),notes:$('#notes').value.trim().slice(0,1000)};
   Q.push(rec);if(!LS.set('queue',Q)){Q.pop();return}
   const mm=MINE[cur.k]=MINE[cur.k]||{};mm.n=(mm.n||0)+1;mm.last=new Date().toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'});if(nl==='Yes')mm.mail=mask(rec.email);if(tx==='Yes')mm.texts=1;LS.set('mine',MINE);
   const today=new Date().toDateString();const c=LS.get('count',{});c[today]=(c[today]||0)+1;LS.set('count',c);
-  if(tx==='Yes')addOut({label:'Welcome text',name:cur.first+' '+cur.last,to:rec.cell,text:WELCOME});
-  if(plN&&plVia==='Text')toast('Saved. The postcard list shows up under Texts to send once this device syncs.');
-  showCount();syncStatus();if(!(plN&&plVia==='Text'))toast(plN?'Saved. Their postcard list goes out when this device syncs.':'Saved. Thanks, '+cur.first+'!');reset();sync()};
+  showCount();syncStatus();toast('Saved. Thanks, '+cur.first+'!');reset();sync()};
 if(LS.get('vol','')&&LS.get('pin',''))openApp();else{$('#vol').value=LS.get('vol','');$('#dev').value=LS.get('dev','')}
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
