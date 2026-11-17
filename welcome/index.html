@@ -149,6 +149,7 @@ details summary{cursor:pointer;color:var(--slate);font-size:14px}
   <div class="btns"><button class="primary" id="syncNow">Sync now</button></div>
   <details style="margin-top:10px"><summary>More</summary>
   <p class="muted">Sign-ins wait on this device until it has internet, then upload on their own. If a device ever can't connect, download what's waiting and send the file to the table lead.</p>
+  <label>This device sends texts with</label><div class="btns" id="txWith"><button type="button" data-w="messages">Messages app</button><button type="button" data-w="gv">Google Voice</button></div>
   <div class="btns"><button id="dlQueue">Download sign-ins waiting to upload</button><button id="logout">Change volunteer or PIN</button></div>
   </details>
 </section>
@@ -264,9 +265,14 @@ let OUT=LS.get('outbox',[]);
 const IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 function smsHref(to,body){const n=String(to).replace(/[^\d+]/g,'');return 'sms:'+n+(IOS?'&':'?')+'body='+encodeURIComponent(body)}
 function renderOut(){const box=$('#outbox');box.classList.toggle('hidden',!OUT.length);
-  $('#obList').innerHTML=OUT.map((o,i)=>`<div style="border-top:1px solid var(--rule);padding:8px 0"><b>${esc(o.label)}</b> to ${esc(o.name)} · ${esc(o.to)}<div class="sample" style="margin:6px 0;max-height:120px;overflow:auto">${esc(o.text)}</div><div class="btns"><a href="${smsHref(o.to,o.text)}" style="text-decoration:none"><button class="primary" type="button">Open Messages</button></a><button type="button" data-copy="${i}">Copy</button><button type="button" data-done="${i}">Sent ✓</button></div></div>`).join('');
-  $('#obList').querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(OUT[+b.dataset.copy].text);toast('Copied')}catch(e){toast('Press and hold the text to copy it')}});
+  const gv=LS.get('txWith','messages')==='gv';
+  $('#outbox p').innerHTML=gv?'This device texts with <b>Google Voice</b>. Tap <b>Copy number</b>, start a new text in Google Voice and paste it in. Then tap <b>Copy text</b> and paste the message. Send, then tap <b>Sent ✓</b>.':'Tap <b>Open Messages</b>, check it, and hit send. On an iPad without a phone plan, tap <b>Copy</b> and paste it into a text on your phone, or switch this device to Google Voice under More.';
+  $('#obList').innerHTML=OUT.map((o,i)=>`<div style="border-top:1px solid var(--rule);padding:8px 0"><b>${esc(o.label)}</b> to ${esc(o.name)} · ${esc(o.to)}<div class="sample" style="margin:6px 0;max-height:120px;overflow:auto">${esc(o.text)}</div><div class="btns">${gv?`<button class="primary" type="button" data-num="${i}">Copy number</button><button class="primary" type="button" data-copy="${i}">Copy text</button>`:`<a href="${smsHref(o.to,o.text)}" style="text-decoration:none"><button class="primary" type="button">Open Messages</button></a><button type="button" data-copy="${i}">Copy</button>`}<button type="button" data-done="${i}">Sent ✓</button></div></div>`).join('');
+  $('#obList').querySelectorAll('[data-num]').forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(String(OUT[+b.dataset.num].to).replace(/[^\d+]/g,''));toast('Number copied')}catch(e){toast('Copy did not work: type the number')}});
+  $('#obList').querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(OUT[+b.dataset.copy].text);toast('Text copied')}catch(e){toast('Press and hold the text to copy it')}});
   $('#obList').querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>{OUT.splice(+b.dataset.done,1);LS.set('outbox',OUT);renderOut()})}
+function txWithUI(){const w=LS.get('txWith','messages');document.querySelectorAll('#txWith button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.w===w?'true':'false'))}
+document.querySelectorAll('#txWith button').forEach(b=>b.onclick=()=>{LS.set('txWith',b.dataset.w);txWithUI();renderOut()});txWithUI();
 function addOut(o){OUT.push(o);LS.set('outbox',OUT);renderOut();$('#outbox').scrollIntoView({behavior:'smooth',block:'start'})}
 const WELCOME="Fairfield County Democrats: thanks for signing up for event texts! About 2 messages a month. Message and data rates may apply. Reply STOP to quit or HELP for help.";
 
@@ -284,7 +290,7 @@ $('#go').onclick=async()=>{const v=$('#vol').value.trim(),pin=$('#pin').value.tr
 $('#logout').onclick=()=>{if(Q.length&&!confirm(Q.length+' sign-ins are still waiting to upload. They stay on this device. Continue?'))return;LS.set('vol','');location.reload()};
 $('#syncNow').onclick=()=>sync(true);
 $('#dlQueue').onclick=()=>{if(!Q.length){toast('Nothing waiting');return}download('welcome_table_waiting_'+(LS.get('dev','device').replace(/\W+/g,'_'))+'_'+stamp()+'.csv',toCSV(['ID','Time','Device','Volunteer','First','Last','Address','Precinct','Email','Cell','Newsletter','Texts','Central committee','Run for office','Postcards','Small task','Notes','Postcard list'],Q.map(v=>[v.id,new Date(v.time).toLocaleString(),v.device,v.volunteer,v.first,v.last,v.address,v.precinct,v.email,v.cell,v.newsletter,v.texts,v.cc,v.run,v.postcards,v.task,v.notes,v.plist?v.plist.count+' by '+v.plist.via+' to '+v.plist.to:''])))};
-if(LS.get('vol','')&&LS.get('pin',''))openApp();else{$('#vol').value=LS.get('vol','');$('#dev').value=LS.get('dev','')}
+
 
 // ---- answer buttons ----
 document.querySelectorAll('[data-group]').forEach(g=>g.querySelectorAll('button').forEach(b=>b.onclick=()=>{
@@ -377,6 +383,7 @@ $('#save').onclick=()=>{if(!cur){toast('Look them up first');return}
   if(tx==='Yes')addOut({label:'Welcome text',name:cur.first+' '+cur.last,to:rec.cell,text:WELCOME});
   if(plN&&plVia==='Text')toast('Saved. The postcard list shows up under Texts to send once this device syncs.');
   showCount();syncStatus();if(!(plN&&plVia==='Text'))toast(plN?'Saved. Their postcard list goes out when this device syncs.':'Saved. Thanks, '+cur.first+'!');reset();sync()};
+if(LS.get('vol','')&&LS.get('pin',''))openApp();else{$('#vol').value=LS.get('vol','');$('#dev').value=LS.get('dev','')}
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body></html>
