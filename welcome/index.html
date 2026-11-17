@@ -63,6 +63,7 @@ details summary{cursor:pointer;color:var(--slate);font-size:14px}
 </section>
 
 <div id="app" class="hidden">
+<section class="card hidden" id="outbox" style="border:2px solid var(--red)"><h2>Texts to send</h2><p class="muted" style="margin:0 0 6px">Tap <b>Open Messages</b>, check it, and hit send. On an iPad without a phone plan, tap <b>Copy</b> and paste it into a text on your phone.</p><div id="obList"></div></section>
 <section class="card" id="c1">
   <h2><span class="n">1</span>Who's here?</h2>
   <div class="say">Hi, welcome! I'm <span class="vname">___</span>. What's your name?</div>
@@ -125,7 +126,7 @@ details summary{cursor:pointer;color:var(--slate);font-size:14px}
       <label>How should we send the list?</label>
       <div class="btns" data-group="plvia"><button data-v="Email">Email</button><button data-v="Text">Text</button></div>
       <div id="plToWrap" class="hidden"><label for="plTo" id="plToLbl">Email</label><input id="plTo" autocomplete="off"></div>
-      <p class="muted" style="margin:6px 0 0">Email goes out on its own once this device syncs. A text list waits on the Sheet's Postcard lists tab for a volunteer to send.</p>
+      <p class="muted" style="margin:6px 0 0">Email goes out on its own once this device syncs. A text list comes back to this device under <b>Texts to send</b>, ready to send from Messages.</p>
     </div>
   </div>
 </section>
@@ -239,6 +240,7 @@ async function sync(manual){if(syncing)return;if(!HAS_API()){lastErr='No Google 
   try{
     while(Q.length){const rec=Q[0];const d=await jsonp({action:'save',pin,rec:JSON.stringify(rec)});
       if(!d||d.ok===false){lastErr=d&&d.error==='pin'?'The PIN changed. Tap More, then Change volunteer or PIN.':'The sheet would not take a sign-in.';throw 0}
+      if(d.plist&&d.plist.text&&d.plist.to)addOut({label:'Postcard list ('+d.plist.count+')',name:d.plist.name,to:d.plist.to,text:d.plist.text});
       Q.shift();LS.set('queue',Q)}
     const d=await jsonp({action:'sync',pin});
     if(!d||d.ok===false){lastErr=d&&d.error==='pin'?'The PIN changed. Tap More, then Change volunteer or PIN.':'Could not read the sheet.';throw 0}
@@ -257,10 +259,21 @@ const stamp=()=>new Date().toISOString().slice(0,10);
 function toCSV(head,rows){const q=v=>{v=v==null?'':String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};return '﻿'+[head,...rows].map(r=>r.map(q).join(',')).join('\r\n')}
 function download(name,text){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
 
+// ---- texts to send from this phone (postcard lists and welcome texts) ----
+let OUT=LS.get('outbox',[]);
+const IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function smsHref(to,body){const n=String(to).replace(/[^\d+]/g,'');return 'sms:'+n+(IOS?'&':'?')+'body='+encodeURIComponent(body)}
+function renderOut(){const box=$('#outbox');box.classList.toggle('hidden',!OUT.length);
+  $('#obList').innerHTML=OUT.map((o,i)=>`<div style="border-top:1px solid var(--rule);padding:8px 0"><b>${esc(o.label)}</b> to ${esc(o.name)} · ${esc(o.to)}<div class="sample" style="margin:6px 0;max-height:120px;overflow:auto">${esc(o.text)}</div><div class="btns"><a href="${smsHref(o.to,o.text)}" style="text-decoration:none"><button class="primary" type="button">Open Messages</button></a><button type="button" data-copy="${i}">Copy</button><button type="button" data-done="${i}">Sent ✓</button></div></div>`).join('');
+  $('#obList').querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(OUT[+b.dataset.copy].text);toast('Copied')}catch(e){toast('Press and hold the text to copy it')}});
+  $('#obList').querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>{OUT.splice(+b.dataset.done,1);LS.set('outbox',OUT);renderOut()})}
+function addOut(o){OUT.push(o);LS.set('outbox',OUT);renderOut();$('#outbox').scrollIntoView({behavior:'smooth',block:'start'})}
+const WELCOME="Fairfield County Democrats: thanks for signing up for event texts! About 2 messages a month. Message and data rates may apply. Reply STOP to quit or HELP for help.";
+
 // ---- setup ----
 function openApp(){$('#setup').classList.add('hidden');$('#app').classList.remove('hidden');
   document.querySelectorAll('.vname').forEach(e=>e.textContent=LS.get('vol',''));$('#who').textContent='Volunteer: '+LS.get('vol','')+' · '+LS.get('dev','');
-  $('#consentText').textContent=CONSENT;applySettings();showCount();syncStatus();reset();sync()}
+  $('#consentText').textContent=CONSENT;applySettings();renderOut();showCount();syncStatus();reset();sync()}
 $('#go').onclick=async()=>{const v=$('#vol').value.trim(),pin=$('#pin').value.trim(),dev=$('#dev').value.trim();const m=$('#setupMsg');
   if(!v||!pin||!dev){m.textContent='Fill in all three.';m.classList.remove('hidden');return}
   m.textContent='Checking the PIN…';m.classList.remove('hidden');
@@ -361,7 +374,9 @@ $('#save').onclick=()=>{if(!cur){toast('Look them up first');return}
   Q.push(rec);if(!LS.set('queue',Q)){Q.pop();return}
   const mm=MINE[cur.k]=MINE[cur.k]||{};mm.n=(mm.n||0)+1;mm.last=new Date().toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'});if(nl==='Yes')mm.mail=mask(rec.email);if(tx==='Yes')mm.texts=1;LS.set('mine',MINE);
   const today=new Date().toDateString();const c=LS.get('count',{});c[today]=(c[today]||0)+1;LS.set('count',c);
-  showCount();syncStatus();toast(plN?'Saved. Their postcard list goes out when this device syncs.':'Saved. Thanks, '+cur.first+'!');reset();sync()};
+  if(tx==='Yes')addOut({label:'Welcome text',name:cur.first+' '+cur.last,to:rec.cell,text:WELCOME});
+  if(plN&&plVia==='Text')toast('Saved. The postcard list shows up under Texts to send once this device syncs.');
+  showCount();syncStatus();if(!(plN&&plVia==='Text'))toast(plN?'Saved. Their postcard list goes out when this device syncs.':'Saved. Thanks, '+cur.first+'!');reset();sync()};
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body></html>

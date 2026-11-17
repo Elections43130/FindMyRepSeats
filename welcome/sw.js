@@ -1,4 +1,4 @@
-const C='fdw-2026-11-17a';const FILES=['./','index.html','manifest.json','icon.png','icon512.png'];
+const C='fdw-2026-11-17b';const FILES=['./','index.html','manifest.json','icon.png','icon512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(FILES)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))));self.clients.claim()});
 self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.method!=='GET'||u.origin!==location.origin)return;
