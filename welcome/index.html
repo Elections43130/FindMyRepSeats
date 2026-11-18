@@ -231,10 +231,10 @@ async function emailHash(e){e=String(e||'').trim().toLowerCase();if(!e.includes(
   const b=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(e)));return [...b.slice(0,6)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 let emailKnown=false;
 async function checkEmail(){const h=await emailHash($('#email').value);emailKnown=!!(h&&MAILH.has(h));$('#nlHit').classList.toggle('hidden',!emailKnown);if(cur)$('#c2').classList.toggle('done',cur.newsletter.on||!!picked('newsletter'))}
-function jsonp(params){return new Promise((res,rej)=>{
+function jsonp(params,ms){return new Promise((res,rej)=>{
   if(!HAS_API())return rej(new Error('noapi'));
   const cb='fdw'+Date.now()+Math.floor(Math.random()*1e5);const s=document.createElement('script');
-  const t=setTimeout(()=>{done();rej(new Error('timeout'))},20000);
+  const t=setTimeout(()=>{done();rej(new Error('timeout'))},ms||20000);
   function done(){clearTimeout(t);delete window[cb];s.remove()}
   window[cb]=d=>{done();res(d)};s.onerror=()=>{done();rej(new Error('net'))};
   s.src=API+'?'+new URLSearchParams({...params,callback:cb,t:Date.now()});document.body.appendChild(s)})}
@@ -242,8 +242,8 @@ function jsonp(params){return new Promise((res,rej)=>{
 let VIDX=null;
 async function loadVIDX(){try{const c=await caches.open('fdw-data');const r=await c.match('voters.json');if(r)VIDX=await r.json()}catch(e){}}
 async function saveVIDX(obj){VIDX=obj;try{const c=await caches.open('fdw-data');await c.put('voters.json',new Response(JSON.stringify(obj),{headers:{'Content-Type':'application/json'}}))}catch(e){}}
-loadVIDX();
-let syncing=false,lastErr='';
+loadVIDX().then(()=>syncStatus());
+let syncing=false,lastErr='',vLoading=false,vErr='';
 async function sync(manual){if(syncing)return;if(!HAS_API()){lastErr='No Google Sheet link on this device yet.';syncStatus();return}
   if(!navigator.onLine&&!manual){syncStatus();return}
   syncing=true;syncStatus();const pin=LS.get('pin','');
@@ -254,13 +254,22 @@ async function sync(manual){if(syncing)return;if(!HAS_API()){lastErr='No Google 
     const d=await jsonp({action:'sync',pin});
     if(!d||d.ok===false){lastErr=d&&d.error==='pin'?'The PIN changed. Tap More, then Change volunteer or PIN.':'Could not read the sheet.';throw 0}
     L={mail:d.mail||{},mailH:d.mailH||[],texts:d.texts||{},visits:d.visits||{},cc:d.cc||{},settings:d.settings||L.settings,updated:d.updated};LS.set('lists',L);MINE={};LS.set('mineH',[]);MAILH=new Set(L.mailH);
-    if(d.voterV&&(d.voterV!==LS.get('voterV','')||!VIDX)){const vd=await jsonp({action:'voters',pin});if(vd&&vd.ok&&vd.idx){await saveVIDX(vd.idx);LS.set('voterV',vd.v||d.voterV)}}LS.set('mine',MINE);lastErr='';applySettings();
+    LS.set('sheetVoterV',d.voterV||'');
+    if(d.voterV&&(d.voterV!==LS.get('voterV','')||!VIDX)){vLoading=true;vErr='';syncStatus();
+      try{const vd=await jsonp({action:'voters',pin},180000);if(vd&&vd.ok&&vd.idx&&Object.keys(vd.idx).length){await saveVIDX(vd.idx);LS.set('voterV',vd.v||d.voterV)}else vErr='The Sheet sent back an empty voter list. Check the Voter index tab.'}
+      catch(e){vErr='The voter list did not finish downloading. Stay on Wi-Fi or the hotspot and tap Sync now.'}
+      vLoading=false}LS.set('mine',MINE);lastErr='';applySettings();
     if(manual)toast('Synced')
   }catch(e){if(!lastErr)lastErr='No connection. Sign-ins are safe on this device and will upload later.';if(manual)toast(lastErr)}
   syncing=false;syncStatus()}
+function voterLine(){if(vLoading)return '<b>Downloading the voter list… (keep the app open)</b>';
+  if(VIDX)return '✓ Voter list on this device: '+Object.keys(VIDX).length.toLocaleString()+' names';
+  if(vErr)return '<span style="color:var(--red)">'+esc(vErr)+'</span>';
+  if(L.updated&&!LS.get('sheetVoterV',''))return '<span style="color:var(--red)">No voter list on the Sheet yet. It needs a tab named exactly "Voter index" and the updated script.</span>';
+  return '<span style="color:var(--red)">Voter list not downloaded yet. Tap Sync now with internet.</span>'}
 function syncStatus(){const el=$('#syncStatus');if(!el)return;
   const when=L.updated?new Date(L.updated).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'never';
-  el.innerHTML=(syncing?'<b>Syncing…</b><br>':'')+(Q.length?`<b style="color:var(--red)">${Q.length} sign-in${Q.length>1?'s':''} waiting to upload</b>`:'✓ Everything is uploaded')+`<br>Lists last updated: ${esc(when)}`+(lastErr&&!syncing?`<br><span style="color:var(--red)">${esc(lastErr)}</span>`:'')}
+  el.innerHTML=(syncing?'<b>Syncing…</b><br>':'')+(Q.length?`<b style="color:var(--red)">${Q.length} sign-in${Q.length>1?'s':''} waiting to upload</b>`:'✓ Everything is uploaded')+`<br>Lists last updated: ${esc(when)}`+'<br>'+voterLine()+(lastErr&&!syncing?`<br><span style="color:var(--red)">${esc(lastErr)}</span>`:'')}
 addEventListener('online',()=>sync());setInterval(()=>sync(),60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
 function applySettings(){const st=L.settings||{};$('#sample').textContent=st.postcard||DEF_POST;
@@ -364,7 +373,7 @@ $('#lookup').onclick=()=>{const first=$('#first').value.trim(),last=$('#last').v
   if(m&&m.length===1){pickPlace(m[0][0],m[0][1]);return}
   if(m&&m.length>1){mb.innerHTML='<p class="muted" style="margin:8px 0 4px">More than one '+esc(first)+' '+esc(last)+'. Which street do you live on?</p><div class="btns">'+m.slice(0,8).map(x=>`<button type="button" data-s="${x[0]}" data-y="${x[1]}">${esc(streetLabel(x[0]))}</button>`).join('')+'<button type="button" data-none="1">None of these</button></div>';
     mb.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>pickPlace(+b.dataset.s,+b.dataset.y));mb.querySelector('[data-none]').onclick=()=>{mb.innerHTML='';showAddr('Ask for their address.');$('#addr').focus()};return}
-  showAddr(VIDX?"Not in the voter list under that name. Ask for their address (they may be new or use a nickname).":"Ask for their address.");runLookup()};
+  showAddr(VIDX?"Not in the voter list under that name. Ask for their address (they may be new or use a nickname).":(vLoading?"The voter list is still downloading. Ask for their address for now.":"The voter list isn't on this device yet, so ask for their address. (With internet, tap Sync now at the bottom of the app.)"));runLookup()};
 function runLookup(){const first=$('#first').value.trim(),last=$('#last').value.trim();
   clearTimeout(addrT);if(!place&&$('#addr').value.trim())addrCheck();
   const pct=place?DATA.styles[place.style-1][0]:'';const f=F1(first),l=N(last);const same=(a,b)=>F1(a)===f&&N(b)===l;
