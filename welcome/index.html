@@ -83,7 +83,7 @@ details summary{cursor:pointer;color:var(--slate);font-size:14px}
   <div id="nlAsk">
     <div class="say">Would you like our email newsletter? It's the easiest way to hear what's going on.</div>
     <div class="btns" data-group="newsletter"><button data-v="Yes">Yes</button><button data-v="No">No thanks</button></div>
-    <div id="nlEmail" class="hidden"><label for="email">Email</label><input id="email" type="email" inputmode="email" autocomplete="off"></div>
+    <div id="nlEmail" class="hidden"><label for="email">Email</label><input id="email" type="email" inputmode="email" autocomplete="off"><p id="nlHit" class="hidden" style="margin:6px 0 0;color:var(--ok);font-weight:600">✓ That email is already on the newsletter. Nothing more to do.</p></div>
   </div>
 </section>
 
@@ -216,6 +216,11 @@ if(!L){L={mail:{},texts:{},visits:{},cc:{},settings:{postcard:DEF_POST,mobilize:
 let Q=LS.get('queue',[]);     // sign-ins not uploaded yet (full details)
 let MINE=LS.get('mine',{});   // sign-ins from this device, name key only, so repeat visitors are spotted before the next sync
 const KEY=(f,l)=>F1(f)+'|'+N(l);
+let MAILH=new Set(L.mailH||[]);(LS.get('mineH',[])).forEach(h=>MAILH.add(h));
+async function emailHash(e){e=String(e||'').trim().toLowerCase();if(!e.includes('@')||!(window.crypto&&crypto.subtle))return '';
+  const b=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(e)));return [...b.slice(0,6)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+let emailKnown=false;
+async function checkEmail(){const h=await emailHash($('#email').value);emailKnown=!!(h&&MAILH.has(h));$('#nlHit').classList.toggle('hidden',!emailKnown);if(cur)$('#c2').classList.toggle('done',cur.newsletter.on||!!picked('newsletter'))}
 function jsonp(params){return new Promise((res,rej)=>{
   if(!HAS_API())return rej(new Error('noapi'));
   const cb='fdw'+Date.now()+Math.floor(Math.random()*1e5);const s=document.createElement('script');
@@ -233,7 +238,7 @@ async function sync(manual){if(syncing)return;if(!HAS_API()){lastErr='No Google 
       Q.shift();LS.set('queue',Q)}
     const d=await jsonp({action:'sync',pin});
     if(!d||d.ok===false){lastErr=d&&d.error==='pin'?'The PIN changed. Tap More, then Change volunteer or PIN.':'Could not read the sheet.';throw 0}
-    L={mail:d.mail||{},texts:d.texts||{},visits:d.visits||{},cc:d.cc||{},settings:d.settings||L.settings,updated:d.updated};LS.set('lists',L);MINE={};LS.set('mine',MINE);lastErr='';applySettings();
+    L={mail:d.mail||{},mailH:d.mailH||[],texts:d.texts||{},visits:d.visits||{},cc:d.cc||{},settings:d.settings||L.settings,updated:d.updated};LS.set('lists',L);MINE={};LS.set('mineH',[]);MAILH=new Set(L.mailH);LS.set('mine',MINE);lastErr='';applySettings();
     if(manual)toast('Synced')
   }catch(e){if(!lastErr)lastErr='No connection. Sign-ins are safe on this device and will upload later.';if(manual)toast(lastErr)}
   syncing=false;syncStatus()}
@@ -272,7 +277,7 @@ $('#go').onclick=async()=>{const v=$('#vol').value.trim(),pin=$('#pin').value.tr
   if(!v||!pin||!dev){m.textContent='Fill in all three.';m.classList.remove('hidden');return}
   m.textContent='Checking the PIN…';m.classList.remove('hidden');
   try{const d=await jsonp({action:'sync',pin});if(!d||d.ok===false){m.textContent='That PIN did not work. Ask the table lead.';return}
-    L={mail:d.mail||{},texts:d.texts||{},visits:d.visits||{},cc:d.cc||{},settings:d.settings||L.settings,updated:d.updated};LS.set('lists',L)}
+    L={mail:d.mail||{},mailH:d.mailH||[],texts:d.texts||{},visits:d.visits||{},cc:d.cc||{},settings:d.settings||L.settings,updated:d.updated};LS.set('lists',L);MAILH=new Set(L.mailH)}
   catch(e){m.textContent=HAS_API()?'No internet right now. Connect once (Wi-Fi or a hotspot) to set this device up.':'This copy has no Google Sheet link yet.';return}
   LS.set('vol',v);LS.set('pin',pin);LS.set('dev',dev);openApp()};
 $('#logout').onclick=()=>{if(Q.length&&!confirm(Q.length+' sign-ins are still waiting to upload. They stay on this device. Continue?'))return;LS.set('vol','');location.reload()};
@@ -308,6 +313,7 @@ function addrCheck(){const raw=$('#addr').value;const st=$('#addrStatus');place=
   else if(r.state==='choose'){st.innerHTML='<div class="msg">Which street? <div class="btns">'+r.choices.map(c=>`<button type="button" data-s="${styleFor(c.st,r.num)}" data-l="${r.num} ${esc(tc(c.st.name))}, ${esc(tc(c.st.town))}">${r.num} ${esc(tc(c.st.name))} <small>${esc(tc(c.st.town))}</small></button>`).join('')+'</div></div>';
     st.querySelectorAll('button').forEach(b=>b.onclick=()=>{place={style:+b.dataset.s,label:b.dataset.l};$('#addr').value=b.dataset.l;st.innerHTML='<p class="muted" style="margin:6px 0 0">✓ '+esc(b.dataset.l)+' · Precinct '+esc(tc(DATA.styles[place.style-1][0]))+'</p>'})}
   else if(r.state==='msg'){st.innerHTML='<p class="msg">'+r.text+'</p>'}}
+$('#email').addEventListener('input',()=>{clearTimeout(window._emT);window._emT=setTimeout(checkEmail,300)});
 let addrT;$('#addr').addEventListener('input',()=>{clearTimeout(addrT);addrT=setTimeout(addrCheck,500)});
 function offices2027(style){const s=DATA.styles[style-1];const [pct,city,ward,twp,vill,sd,escd]=s;
   const keys=new Set();if(city)keys.add('CITY:'+city);if(ward)keys.add('WARD:'+ward);if(twp)keys.add('TWP:'+twp);if(vill)keys.add('VILL:'+vill);if(sd)keys.add('SD:'+sd);if(escd)keys.add('ESC:'+escd);
@@ -347,12 +353,13 @@ $('#lookup').onclick=()=>{const first=$('#first').value.trim(),last=$('#last').v
 
 // ---- save ----
 function reset(){cur=null;place=null;['first','last','addr','email','cell','notes'].forEach(id=>$('#'+id).value='');$('#addrStatus').innerHTML='';$('#chips').innerHTML='';
-  document.querySelectorAll('[data-group] [aria-pressed]').forEach(b=>b.setAttribute('aria-pressed','false'));$('#nlEmail').classList.add('hidden');$('#txCell').classList.add('hidden');
+  document.querySelectorAll('[data-group] [aria-pressed]').forEach(b=>b.setAttribute('aria-pressed','false'));$('#nlEmail').classList.add('hidden');$('#nlHit').classList.add('hidden');emailKnown=false;$('#txCell').classList.add('hidden');
   setPc(0);$('#steps').classList.add('hidden');$('#bar').classList.add('hidden');$('#lookup').textContent='Look them up';document.querySelectorAll('.card').forEach(c=>c.classList.remove('done'));scrollTo({top:0})}
 function showCount(){const today=new Date().toDateString();const n=(LS.get('count',{})[today])||0;$('#count').textContent=n+(n===1?' person':' people')+' signed in on this device today'}
 $('#clear').onclick=()=>{if(confirm('Clear this person without saving?'))reset()};
-$('#save').onclick=()=>{if(!cur){toast('Look them up first');return}
-  const nl=cur.newsletter.on?'Already':picked('newsletter'),tx=cur.texts.on?'Already':picked('texts');
+$('#save').onclick=async()=>{if(!cur){toast('Look them up first');return}
+  await checkEmail();
+  const nl=cur.newsletter.on||(picked('newsletter')==='Yes'&&emailKnown)?'Already':picked('newsletter'),tx=cur.texts.on?'Already':picked('texts');
   if(nl==='Yes'&&!$('#email').value.trim()){toast('Add their email');$('#email').focus();return}
   if(tx==='Yes'&&!$('#cell').value.trim()){toast('Add their cell number');$('#cell').focus();return}
   const time=new Date().toISOString();
@@ -360,7 +367,7 @@ $('#save').onclick=()=>{if(!cur){toast('Look them up first');return}
     email:$('#email').value.trim(),cell:$('#cell').value.trim(),newsletter:nl,texts:tx,consent:tx==='Yes'?CONSENT:'',
     cc:cur.ccSkip?(cur.cc?cur.cc.status:''):picked('cc'),run:picked('run'),postcards:pc,task:pickedAll('task').join('; '),notes:$('#notes').value.trim().slice(0,1000)};
   Q.push(rec);if(!LS.set('queue',Q)){Q.pop();return}
-  const mm=MINE[cur.k]=MINE[cur.k]||{};mm.n=(mm.n||0)+1;mm.last=new Date().toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'});if(nl==='Yes')mm.mail=mask(rec.email);if(tx==='Yes')mm.texts=1;LS.set('mine',MINE);
+  const mm=MINE[cur.k]=MINE[cur.k]||{};mm.n=(mm.n||0)+1;mm.last=new Date().toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'});if(nl==='Yes'){mm.mail=mask(rec.email);emailHash(rec.email).then(h=>{if(h){MAILH.add(h);const a=LS.get('mineH',[]);a.push(h);LS.set('mineH',a)}})}if(tx==='Yes')mm.texts=1;LS.set('mine',MINE);
   const today=new Date().toDateString();const c=LS.get('count',{});c[today]=(c[today]||0)+1;LS.set('count',c);
   showCount();syncStatus();toast('Saved. Thanks, '+cur.first+'!');reset();sync()};
 if(LS.get('vol','')&&LS.get('pin',''))openApp();else{$('#vol').value=LS.get('vol','');$('#dev').value=LS.get('dev','')}
