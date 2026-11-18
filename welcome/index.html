@@ -77,9 +77,10 @@ details summary{cursor:pointer;color:var(--slate);font-size:14px}
   <div class="say">Hi, welcome! I'm <span class="vname">___</span>. What's your name?</div>
   <div class="row2"><div><label for="first">First name</label><input id="first" autocomplete="off" autocapitalize="words"></div>
   <div><label for="last">Last name</label><input id="last" autocomplete="off" autocapitalize="words"></div></div>
-  <label for="addr">Home address (house number, street, town)</label>
+  <div id="matchBox"></div>
+  <div id="addrWrap" class="hidden"><label for="addr">Home address (house number, street, town)</label>
   <input id="addr" autocomplete="off" placeholder="123 Main St, Lancaster">
-  <div id="addrStatus"></div>
+  <div id="addrStatus"></div></div>
   <div class="btns"><button class="primary big" id="lookup">Look them up</button></div>
   <div class="chips" id="chips"></div>
 </section>
@@ -237,6 +238,11 @@ function jsonp(params){return new Promise((res,rej)=>{
   function done(){clearTimeout(t);delete window[cb];s.remove()}
   window[cb]=d=>{done();res(d)};s.onerror=()=>{done();rej(new Error('net'))};
   s.src=API+'?'+new URLSearchParams({...params,callback:cb,t:Date.now()});document.body.appendChild(s)})}
+// ---- voter index: name -> street + precinct, kept in the browser's cache storage (too big for localStorage) ----
+let VIDX=null;
+async function loadVIDX(){try{const c=await caches.open('fdw-data');const r=await c.match('voters.json');if(r)VIDX=await r.json()}catch(e){}}
+async function saveVIDX(obj){VIDX=obj;try{const c=await caches.open('fdw-data');await c.put('voters.json',new Response(JSON.stringify(obj),{headers:{'Content-Type':'application/json'}}))}catch(e){}}
+loadVIDX();
 let syncing=false,lastErr='';
 async function sync(manual){if(syncing)return;if(!HAS_API()){lastErr='No Google Sheet link on this device yet.';syncStatus();return}
   if(!navigator.onLine&&!manual){syncStatus();return}
@@ -247,7 +253,8 @@ async function sync(manual){if(syncing)return;if(!HAS_API()){lastErr='No Google 
       Q.shift();LS.set('queue',Q)}
     const d=await jsonp({action:'sync',pin});
     if(!d||d.ok===false){lastErr=d&&d.error==='pin'?'The PIN changed. Tap More, then Change volunteer or PIN.':'Could not read the sheet.';throw 0}
-    L={mail:d.mail||{},mailH:d.mailH||[],texts:d.texts||{},visits:d.visits||{},cc:d.cc||{},settings:d.settings||L.settings,updated:d.updated};LS.set('lists',L);MINE={};LS.set('mineH',[]);MAILH=new Set(L.mailH);LS.set('mine',MINE);lastErr='';applySettings();
+    L={mail:d.mail||{},mailH:d.mailH||[],texts:d.texts||{},visits:d.visits||{},cc:d.cc||{},settings:d.settings||L.settings,updated:d.updated};LS.set('lists',L);MINE={};LS.set('mineH',[]);MAILH=new Set(L.mailH);
+    if(d.voterV&&(d.voterV!==LS.get('voterV','')||!VIDX)){const vd=await jsonp({action:'voters',pin});if(vd&&vd.ok&&vd.idx){await saveVIDX(vd.idx);LS.set('voterV',vd.v||d.voterV)}}LS.set('mine',MINE);lastErr='';applySettings();
     if(manual)toast('Synced')
   }catch(e){if(!lastErr)lastErr='No connection. Sign-ins are safe on this device and will upload later.';if(manual)toast(lastErr)}
   syncing=false;syncStatus()}
@@ -347,9 +354,19 @@ function offices2027(style){const s=DATA.styles[style-1];const [pct,city,ward,tw
   return DATA.seats.filter(x=>keys.has(x[0])&&x[5].includes('Nov 2027')).map(x=>((DATA.labels[x[0]]||'')+' '+x[2]).trim())}
 
 // ---- look up (all on this device) ----
+function streetLabel(sid){const s=S[sid-1];return s?tc(s.name)+', '+tc(s.town):''}
+function pickPlace(sid,style){place={style,label:streetLabel(sid)};runLookup()}
+function showAddr(msg){$('#addrWrap').classList.remove('hidden');if(msg)$('#matchBox').innerHTML='<p class="msg" style="margin:8px 0 0">'+msg+'</p>';}
 $('#lookup').onclick=()=>{const first=$('#first').value.trim(),last=$('#last').value.trim();
   if(!first||!last){toast('Type their first and last name');return}
-  clearTimeout(addrT);if(!place)addrCheck();
+  if(place||!$('#addrWrap').classList.contains('hidden')&&$('#addr').value.trim())return runLookup();
+  const m=VIDX?(VIDX[KEY(first,last)]||[]):null;const mb=$('#matchBox');
+  if(m&&m.length===1){pickPlace(m[0][0],m[0][1]);return}
+  if(m&&m.length>1){mb.innerHTML='<p class="muted" style="margin:8px 0 4px">More than one '+esc(first)+' '+esc(last)+'. Which street do you live on?</p><div class="btns">'+m.slice(0,8).map(x=>`<button type="button" data-s="${x[0]}" data-y="${x[1]}">${esc(streetLabel(x[0]))}</button>`).join('')+'<button type="button" data-none="1">None of these</button></div>';
+    mb.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>pickPlace(+b.dataset.s,+b.dataset.y));mb.querySelector('[data-none]').onclick=()=>{mb.innerHTML='';showAddr('Ask for their address.');$('#addr').focus()};return}
+  showAddr(VIDX?"Not in the voter list under that name. Ask for their address (they may be new or use a nickname).":"Ask for their address.");runLookup()};
+function runLookup(){const first=$('#first').value.trim(),last=$('#last').value.trim();
+  clearTimeout(addrT);if(!place&&$('#addr').value.trim())addrCheck();
   const pct=place?DATA.styles[place.style-1][0]:'';const f=F1(first),l=N(last);const same=(a,b)=>F1(a)===f&&N(b)===l;
   const k=KEY(first,last);const mm=MINE[k]||{};const mask=L.mail[k]||mm.mail||'';const txOn=!!(L.texts[k]||mm.texts);
   const sv=L.visits[k]||[0,''];const visN=sv[0]+(mm.n||0),visLast=mm.last||sv[1];
@@ -376,10 +393,12 @@ $('#lookup').onclick=()=>{const first=$('#first').value.trim(),last=$('#last').v
     :'<p class="muted" style="margin:0">Add their address to see which local seats are on their 2027 ballot.</p>';
   $('#lookup').textContent='Look them up again';
   $('#steps').classList.remove('hidden');$('#bar').classList.remove('hidden');markDone();
-  $('#c2').scrollIntoView({behavior:'smooth',block:'start'})};
+  if(place&&$('#addrWrap').classList.contains('hidden'))$('#matchBox').innerHTML='<p class="muted" style="margin:8px 0 0">✓ '+esc(place.label)+' · Precinct '+esc(tc(DATA.styles[place.style-1][0]))+' <a href="#" id="notThem">Not right?</a></p>';
+  const nt=$('#notThem');if(nt)nt.onclick=e=>{e.preventDefault();place=null;$('#matchBox').innerHTML='';showAddr('Ask for their address.');$('#addr').focus()};
+  $('#c2').scrollIntoView({behavior:'smooth',block:'start'})}
 
 // ---- save ----
-function reset(){cur=null;place=null;['first','last','addr','email','cell','notes'].forEach(id=>$('#'+id).value='');$('#addrStatus').innerHTML='';$('#chips').innerHTML='';
+function reset(){cur=null;place=null;['first','last','addr','email','cell','notes'].forEach(id=>$('#'+id).value='');$('#addrStatus').innerHTML='';$('#chips').innerHTML='';$('#matchBox').innerHTML='';$('#addrWrap').classList.add('hidden');
   document.querySelectorAll('[data-group] [aria-pressed]').forEach(b=>b.setAttribute('aria-pressed','false'));$('#nlEmail').classList.add('hidden');$('#nlHit').classList.add('hidden');emailKnown=false;$('#txCell').classList.add('hidden');
   setPc(0);$('#steps').classList.add('hidden');$('#bar').classList.add('hidden');$('#lookup').textContent='Look them up';document.querySelectorAll('.card').forEach(c=>c.classList.remove('done'));scrollTo({top:0})}
 function showCount(){const today=new Date().toDateString();const n=(LS.get('count',{})[today])||0;$('#count').textContent=n+(n===1?' person':' people')+' signed in on this device today'}
