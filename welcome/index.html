@@ -143,7 +143,7 @@ details summary{cursor:pointer;color:var(--slate);font-size:14px}
 </section>
 </div>
 <p class="muted" id="count" style="text-align:center"></p>
-<p class="muted" style="text-align:center;font-size:12px;margin:0">App version Nov 19 B</p>
+<p class="muted" style="text-align:center;font-size:12px;margin:0">App version Nov 19 C</p>
 <section class="card" id="admin">
   <h2>Sync with the Google Sheet</h2>
   <p id="syncStatus" class="muted" style="margin:0"></p>
@@ -240,9 +240,18 @@ function jsonp(params,ms){return new Promise((res,rej)=>{
   window[cb]=d=>{done();res(d)};s.onerror=()=>{done();rej(new Error('net'))};
   s.src=API+'?'+new URLSearchParams({...params,callback:cb,t:Date.now()});document.body.appendChild(s)})}
 // ---- voter index: name -> street + precinct, kept in the browser's cache storage (too big for localStorage) ----
-let VIDX=null;
-async function loadVIDX(){try{const c=await caches.open('fdw-data');const r=await c.match('voters.json');if(r)VIDX=await r.json()}catch(e){}}
-async function saveVIDX(obj){VIDX=obj;try{const c=await caches.open('fdw-data');await c.put('voters.json',new Response(JSON.stringify(obj),{headers:{'Content-Type':'application/json'}}))}catch(e){}}
+let VIDX=null,VM=null;
+const NICK={"MIKE": ["MICHAEL"], "MICKEY": ["MICHAEL"], "BILL": ["WILLIAM"], "BILLY": ["WILLIAM"], "WILL": ["WILLIAM"], "LIAM": ["WILLIAM"], "BOB": ["ROBERT"], "BOBBY": ["ROBERT"], "ROB": ["ROBERT"], "ROBBIE": ["ROBERT"], "BERT": ["ROBERT"], "JIM": ["JAMES"], "JIMMY": ["JAMES"], "JAMIE": ["JAMES"], "DAN": ["DANIEL"], "DANNY": ["DANIEL"], "DAVE": ["DAVID"], "DAVEY": ["DAVID"], "TOM": ["THOMAS"], "TOMMY": ["THOMAS"], "JOE": ["JOSEPH"], "JOEY": ["JOSEPH"], "CHRIS": ["CHRISTOPHER", "CHRISTINE", "CHRISTINA"], "KRIS": ["KRISTEN", "KRISTINA", "KRISTIN", "CHRISTOPHER"], "STEVE": ["STEVEN", "STEPHEN"], "RICK": ["RICHARD"], "RICH": ["RICHARD"], "RICKY": ["RICHARD"], "DICK": ["RICHARD"], "RON": ["RONALD"], "RONNIE": ["RONALD"], "DON": ["DONALD"], "DONNIE": ["DONALD"], "TONY": ["ANTHONY"], "ED": ["EDWARD", "EDWIN"], "EDDIE": ["EDWARD"], "TED": ["EDWARD", "THEODORE"], "TEDDY": ["THEODORE"], "GREG": ["GREGORY"], "JEFF": ["JEFFREY"], "JERRY": ["GERALD", "JEROME"], "GERRY": ["GERALD"], "LARRY": ["LAWRENCE"], "KEN": ["KENNETH"], "KENNY": ["KENNETH"], "TIM": ["TIMOTHY"], "TIMMY": ["TIMOTHY"], "MATT": ["MATTHEW"], "NICK": ["NICHOLAS"], "NATE": ["NATHAN", "NATHANIEL"], "ANDY": ["ANDREW"], "DREW": ["ANDREW"], "PAT": ["PATRICK", "PATRICIA"], "PATTY": ["PATRICIA"], "PATSY": ["PATRICIA"], "TRISH": ["PATRICIA"], "SAM": ["SAMUEL", "SAMANTHA"], "SAMMY": ["SAMUEL"], "BEN": ["BENJAMIN"], "BENNY": ["BENJAMIN"], "ALEX": ["ALEXANDER", "ALEXANDRA"], "AL": ["ALAN", "ALBERT", "ALLEN"], "CHUCK": ["CHARLES"], "CHARLIE": ["CHARLES"], "HANK": ["HENRY"], "HARRY": ["HAROLD", "HENRY"], "FRANK": ["FRANCIS", "FRANKLIN"], "FRANKIE": ["FRANCIS"], "FRAN": ["FRANCES", "FRANCIS"], "GENE": ["EUGENE"], "JACK": ["JOHN"], "JOHNNY": ["JOHN"], "JON": ["JONATHAN"], "DOUG": ["DOUGLAS"], "PHIL": ["PHILLIP", "PHILIP"], "RAY": ["RAYMOND"], "RANDY": ["RANDALL"], "ZACH": ["ZACHARY"], "ZACK": ["ZACHARY"], "JAKE": ["JACOB"], "JOSH": ["JOSHUA"], "TONI": ["ANTOINETTE"], "LIZ": ["ELIZABETH"], "LIZZIE": ["ELIZABETH"], "BETH": ["ELIZABETH"], "BETSY": ["ELIZABETH"], "BETTY": ["ELIZABETH"], "LIBBY": ["ELIZABETH"], "ELIZA": ["ELIZABETH"], "KATE": ["KATHERINE", "KATHRYN", "CATHERINE"], "KATIE": ["KATHERINE", "KATHRYN", "CATHERINE"], "KATHY": ["KATHERINE", "KATHRYN", "KATHLEEN", "CATHERINE"], "CATHY": ["CATHERINE"], "KAT": ["KATHERINE"], "KIT": ["KATHERINE", "CHRISTOPHER"], "SUE": ["SUSAN", "SUZANNE"], "SUSIE": ["SUSAN"], "SUZY": ["SUSAN", "SUZANNE"], "PEGGY": ["MARGARET"], "MAGGIE": ["MARGARET"], "MEG": ["MARGARET", "MEGAN"], "MARGE": ["MARGARET", "MARJORIE"], "PEG": ["MARGARET"], "DEB": ["DEBORAH", "DEBRA"], "DEBBIE": ["DEBORAH", "DEBRA"], "BARB": ["BARBARA"], "BARBIE": ["BARBARA"], "JENNY": ["JENNIFER"], "JEN": ["JENNIFER"], "JENN": ["JENNIFER"], "JANIE": ["JANE", "JANET"], "JAN": ["JANET", "JANICE"], "JUDY": ["JUDITH"], "TERRI": ["TERESA", "THERESA"], "TERRY": ["TERESA", "THERESA", "TERRENCE", "TERENCE"], "VICKI": ["VICTORIA"], "VICKY": ["VICTORIA"], "TORI": ["VICTORIA"], "ABBY": ["ABIGAIL"], "GABBY": ["GABRIELLE", "GABRIELA"], "MANDY": ["AMANDA"], "MANDI": ["AMANDA"], "SANDY": ["SANDRA"], "SANDI": ["SANDRA"], "CINDY": ["CYNTHIA"], "PAM": ["PAMELA"], "BECKY": ["REBECCA"], "BECCA": ["REBECCA"], "STACY": ["ANASTASIA"], "CHRISSY": ["CHRISTINE", "CHRISTINA"], "TINA": ["CHRISTINA"], "NANCY": ["ANN", "ANNE"], "ANNIE": ["ANN", "ANNE", "ANNA"], "DOT": ["DOROTHY"], "DOTTIE": ["DOROTHY"], "DOTTY": ["DOROTHY"], "DOROTHY": ["DOROTHEA"], "DIANE": ["DIANNE", "DIANA"], "DI": ["DIANE", "DIANA"], "JOJO": ["JOSEPHINE"], "JO": ["JOANN", "JOANNE", "JOSEPHINE", "JOAN"], "SALLY": ["SARAH"], "SADIE": ["SARAH"], "ELLIE": ["ELEANOR", "ELLEN", "ELIZABETH"], "NELL": ["ELEANOR", "HELEN"], "NELLIE": ["ELEANOR", "HELEN"], "LORI": ["LORRAINE"], "MOLLY": ["MARY"], "POLLY": ["MARY"], "MAMIE": ["MARY"], "CONNIE": ["CONSTANCE"], "GINNY": ["VIRGINIA"], "GINGER": ["VIRGINIA"], "JACKIE": ["JACQUELINE"], "JILL": ["JILLIAN"], "VAL": ["VALERIE"], "ANGIE": ["ANGELA"], "LEXI": ["ALEXIS", "ALEXANDRA"], "RENEE": ["IRENE"], "BEV": ["BEVERLY"], "BRAD": ["BRADLEY"], "GREGG": ["GREGORY"], "TERRENCE": ["TERENCE"], "TRES": ["TERESA"], "WALT": ["WALTER"], "WALLY": ["WALTER"], "LOU": ["LOUIS", "LOUISE"], "FRED": ["FREDERICK"], "FREDDIE": ["FREDERICK"], "HERB": ["HERBERT"], "STAN": ["STANLEY"], "LEN": ["LEONARD"], "LENNY": ["LEONARD"], "LEO": ["LEONARD"], "VINCE": ["VINCENT"], "MARTY": ["MARTIN"], "MEL": ["MELVIN", "MELISSA", "MELANIE"], "MISSY": ["MELISSA"], "LISSA": ["MELISSA"], "BRIDGET": ["BRIDGETTE"], "JOANIE": ["JOAN"], "CAROL": ["CAROLINE", "CAROLYN"], "CARRIE": ["CAROLINE", "CAROLYN"], "LYNN": ["LINDA"], "CORY": ["CORNELIUS"], "NEIL": ["CORNELIUS"], "DENNY": ["DENNIS"], "REG": ["REGINALD"], "REGGIE": ["REGINALD"], "RUSS": ["RUSSELL"], "ROGER": ["RODGER"], "CAL": ["CALVIN"], "KIM": ["KIMBERLY"], "KIMMY": ["KIMBERLY"], "SHELLY": ["MICHELLE", "SHELLEY"], "MICKIE": ["MICHELLE"], "ALLIE": ["ALLISON", "ALEXANDRA"], "ALI": ["ALLISON", "ALEXANDRA"], "ROSIE": ["ROSEMARY", "ROSE"], "TESS": ["TERESA", "THERESA"], "TESSA": ["TERESA"], "EMMY": ["EMILY"], "EM": ["EMILY", "EMMA"], "HATTIE": ["HARRIET"], "ADDIE": ["ADELINE"], "LEE": ["LEROY"], "ROY": ["LEROY"], "HAL": ["HAROLD"], "OLLIE": ["OLIVER", "OLIVIA"], "LIV": ["OLIVIA"], "NAN": ["NANCY"], "NANNIE": ["NANCY"]};
+const REV={};for(const k in NICK)for(const f of NICK[k])(REV[f]=REV[f]||[]).push(k);
+function prepVM(){VM={};if(!VIDX)return;for(const key in VIDX){const i=key.indexOf('>');const a=i<0?key:key.slice(0,i),p=i<0?key:key.slice(i+1);for(const e of VIDX[key])(VM[a]=VM[a]||[]).push([e[0],e[1],p])}}
+function firstVariants(f){f=F1(f);const out=new Set([f]);(NICK[f]||[]).forEach(x=>out.add(x));(REV[f]||[]).forEach(x=>out.add(x));return [...out]}
+function findVoters(first,last){if(!VM)return null;const l=N(last),seen=new Set(),out=[];
+  for(const f of firstVariants(first))for(const e of (VM[f+'|'+l]||[])){const id=e.join(',');if(!seen.has(id)){seen.add(id);out.push(e)}}
+  return out}
+function nameOf(p){return p.includes('|')?p.split('|').map(x=>x.charAt(0)+x.slice(1).toLowerCase()).join(' '):p}
+function pkeyOf(p){if(!p)return '';if(p.includes('|'))return p;const w=p.split(' ');return KEY(w[0],w.slice(1).join(' '))}
+async function loadVIDX(){try{const c=await caches.open('fdw-data');const r=await c.match('voters.json');if(r)VIDX=await r.json()}catch(e){}prepVM()}
+async function saveVIDX(obj){VIDX=obj;prepVM();try{const c=await caches.open('fdw-data');await c.put('voters.json',new Response(JSON.stringify(obj),{headers:{'Content-Type':'application/json'}}))}catch(e){}}
 loadVIDX().then(()=>syncStatus());
 let syncing=false,lastErr='',vLoading=false,vErr='';
 async function sync(manual){if(syncing)return;if(!HAS_API()){lastErr='No Google Sheet link on this device yet.';syncStatus();return}
@@ -264,7 +273,7 @@ async function sync(manual){if(syncing)return;if(!HAS_API()){lastErr='No Google 
   }catch(e){if(!lastErr)lastErr='No connection. Sign-ins are safe on this device and will upload later.';if(manual)toast(lastErr)}
   syncing=false;syncStatus()}
 function voterLine(){if(vLoading)return '<b>Downloading the voter list… (keep the app open)</b>';
-  if(VIDX)return '✓ Voter list on this device: '+Object.keys(VIDX).length.toLocaleString()+' names';
+  if(VIDX)return '✓ Voter list on this device: '+Object.keys(VIDX).filter(k=>!k.includes('>')).length.toLocaleString()+' names';
   if(vErr)return '<span style="color:var(--red)">'+esc(vErr)+'</span>';
   if(L.updated&&!LS.get('sheetVoterV',''))return '<span style="color:var(--red)">No voter list on the Sheet yet. It needs a tab named exactly "Voter index" and the updated script.</span>';
   return '<span style="color:var(--red)">Voter list not downloaded yet. Tap Sync now with internet.</span>'}
@@ -365,21 +374,21 @@ function offices2027(style){const s=DATA.styles[style-1];const [pct,city,ward,tw
 
 // ---- look up (all on this device) ----
 function streetLabel(sid){const s=S[sid-1];return s?tc(s.name)+', '+tc(s.town):''}
-function pickPlace(sid,style){place={style,label:streetLabel(sid)};runLookup()}
+function pickPlace(sid,style,p){place={style,label:streetLabel(sid),pkey:pkeyOf(p),pname:p||''};runLookup()}
 function showAddr(msg){$('#addrWrap').classList.remove('hidden');if(msg)$('#matchBox').innerHTML='<p class="msg" style="margin:8px 0 0">'+msg+'</p>';}
 $('#lookup').onclick=()=>{const first=$('#first').value.trim(),last=$('#last').value.trim();
   if(!first||!last){toast('Type their first and last name');return}
   if(place||!$('#addrWrap').classList.contains('hidden')&&$('#addr').value.trim())return runLookup();
-  const m=VIDX?(VIDX[KEY(first,last)]||[]):null;const mb=$('#matchBox');
-  if(m&&m.length===1){pickPlace(m[0][0],m[0][1]);return}
-  if(m&&m.length>1){mb.innerHTML='<p class="muted" style="margin:8px 0 4px">More than one '+esc(first)+' '+esc(last)+'. Which street do you live on?</p><div class="btns">'+m.slice(0,8).map(x=>`<button type="button" data-s="${x[0]}" data-y="${x[1]}">${esc(streetLabel(x[0]))}</button>`).join('')+'<button type="button" data-none="1">None of these</button></div>';
-    mb.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>pickPlace(+b.dataset.s,+b.dataset.y));mb.querySelector('[data-none]').onclick=()=>{mb.innerHTML='';showAddr('Ask for their address.');$('#addr').focus()};return}
+  const m=findVoters(first,last);const mb=$('#matchBox');const typed=KEY(first,last);
+  if(m&&m.length===1){pickPlace(m[0][0],m[0][1],m[0][2]);return}
+  if(m&&m.length>1){mb.innerHTML='<p class="muted" style="margin:8px 0 4px">More than one match for '+esc(first)+' '+esc(last)+'. Which one?</p><div class="btns">'+m.slice(0,10).map(x=>`<button type="button" data-s="${x[0]}" data-y="${x[1]}" data-p="${esc(x[2])}">${pkeyOf(x[2])!==typed?esc(nameOf(x[2]))+' · ':''}${esc(streetLabel(x[0]))}</button>`).join('')+'<button type="button" data-none="1">None of these</button></div>';
+    mb.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>pickPlace(+b.dataset.s,+b.dataset.y,b.dataset.p));mb.querySelector('[data-none]').onclick=()=>{mb.innerHTML='';showAddr('Ask for their address.');$('#addr').focus()};return}
   showAddr(VIDX?"Not in the voter list under that name. Ask for their address (they may be new or use a nickname).":(vLoading?"The voter list is still downloading. Ask for their address for now.":"The voter list isn't on this device yet, so ask for their address. (With internet, tap Sync now at the bottom of the app.)"));runLookup()};
 function runLookup(){const first=$('#first').value.trim(),last=$('#last').value.trim();
   clearTimeout(addrT);if(!place&&$('#addr').value.trim())addrCheck();
   const pct=place?DATA.styles[place.style-1][0]:'';const f=F1(first),l=N(last);const same=(a,b)=>F1(a)===f&&N(b)===l;
-  const k=KEY(first,last);const mm=MINE[k]||{};const mask=L.mail[k]||mm.mail||'';const txOn=!!(L.texts[k]||mm.texts);
-  const sv=L.visits[k]||[0,''];const visN=sv[0]+(mm.n||0),visLast=mm.last||sv[1];
+  const k=KEY(first,last);const pk=place&&place.pkey&&place.pkey!==k?place.pkey:'';const mm=MINE[k]||(pk&&MINE[pk])||{};const mask=L.mail[k]||(pk&&L.mail[pk])||mm.mail||'';const txOn=!!(L.texts[k]||(pk&&L.texts[pk])||mm.texts);
+  const sv=L.visits[k]||(pk&&L.visits[pk])||[0,''];const visN=sv[0]+(mm.n||0),visLast=mm.last||sv[1];
   const c0=pct?L.cc[pct]:null;const cc=c0?{status:c0[0],member:c0[1]}:null;
   cur={first,last,pct,k,newsletter:mask?{on:true,email:mask}:{on:false},texts:txOn?{on:true}:{on:false},cc,ccSkip:!!(cc&&!/^open$/i.test(cc.status))};
   const chips=[];
@@ -403,7 +412,7 @@ function runLookup(){const first=$('#first').value.trim(),last=$('#last').value.
     :'<p class="muted" style="margin:0">Add their address to see which local seats are on their 2027 ballot.</p>';
   $('#lookup').textContent='Look them up again';
   $('#steps').classList.remove('hidden');$('#bar').classList.remove('hidden');markDone();
-  if(place&&$('#addrWrap').classList.contains('hidden'))$('#matchBox').innerHTML='<p class="muted" style="margin:8px 0 0">✓ '+esc(place.label)+' · Precinct '+esc(tc(DATA.styles[place.style-1][0]))+' <a href="#" id="notThem">Not right?</a></p>';
+  if(place&&$('#addrWrap').classList.contains('hidden'))$('#matchBox').innerHTML='<p class="muted" style="margin:8px 0 0">✓ '+(place.pkey&&place.pkey!==KEY(first,last)?'<b>'+esc(nameOf(place.pname))+'</b> · ':'')+esc(place.label)+' · Precinct '+esc(tc(DATA.styles[place.style-1][0]))+' <a href="#" id="notThem">Not right?</a></p>';
   const nt=$('#notThem');if(nt)nt.onclick=e=>{e.preventDefault();place=null;$('#matchBox').innerHTML='';showAddr('Ask for their address.');$('#addr').focus()};
   $('#c2').scrollIntoView({behavior:'smooth',block:'start'})}
 
