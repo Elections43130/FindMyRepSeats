@@ -217,7 +217,7 @@ const mask=e=>{e=String(e||'');const i=e.indexOf('@');return i<1?'':e[0]+'***'+e
 const DEF_POST="Hi ___! I just stopped by the Fairfield County Democrats. They're a friendly group getting ready for the 2027 local races. Want to come with me to the next event? - ___";
 
 // ---- device storage + sync with the Google Sheet ----
-let API=LS.get('api','')||'https://script.google.com/macros/s/AKfycbzEMAt79NIlAUgJu5EFwYWepFWhVAzVfnAtCkaB6bFTMBVe4oYhyJQtoO3SOY8lHBIbwg/exec';
+let API=LS.get('api','')||'https://script.google.com/macros/s/AKfycbyEKdFLPBDxehDfgoI-lSJDciaezq03eedfQBHSdMKQ4sN9HJu5xKCyRQqWGgdvjq1yLA/exec';
 {const m=location.hash.match(/api=([^&]+)/);if(m){API=decodeURIComponent(m[1]);LS.set('api',API);history.replaceState(null,'',location.pathname)}}
 const HAS_API=()=>API&&!API.startsWith('__');
 let L=LS.get('lists',null);   // from the sheet: {mail:{key:mask},texts:{key:1},visits:{key:[n,date]},cc:{PCT:[status,member]},settings,updated}
