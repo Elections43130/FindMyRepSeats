@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>2028 Precinct Playbook</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Merriweather:wght@900&display=swap" rel="stylesheet">
 <style>
 :root{--ink:#1d2433;--ink2:#4a5263;--muted:#7a8191;--line:#e3e6ec;--chip:#f1f3f6;--blue:#2166ac;--red:#b2182b}
 *{box-sizing:border-box}body{margin:0;background:#fff;color:var(--ink);font-family:Inter,system-ui,Arial,sans-serif}
 .wrap{max-width:1180px;margin:0 auto;padding:20px 16px}
-h1{font-size:clamp(24px,4vw,34px);font-weight:800;margin:0 0 4px}.sub{color:var(--ink2);margin:0 0 16px;font-size:15px}
+h1{font-family:Merriweather,Georgia,serif;font-size:clamp(26px,4.2vw,38px);font-weight:900;line-height:1.15;margin:0 0 8px}.sub{color:var(--ink2);margin:0 0 16px;font-size:15px}
 .controls{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:14px}
 select,input[type=search]{border:1px solid var(--line);background:#fff;font:600 15px Inter,system-ui,sans-serif;color:var(--ink);padding:9px 12px;border-radius:10px;min-height:40px}
 input[type=search]{font-weight:400;width:200px}
@@ -41,10 +41,22 @@ td .nm{display:block;color:var(--muted);font-size:11.5px;font-weight:400}
 .fn{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:12px}
 .tip{position:fixed;pointer-events:none;background:var(--ink);color:#fff;font-size:12.5px;padding:6px 9px;border-radius:7px;opacity:0;z-index:5;white-space:nowrap}
 @media(hover:none){.tip{display:none}}
+.gl28{border:1px solid #e3e6ec;border-radius:12px;padding:10px 14px;margin:0 0 14px;font-size:14px}.gl28 summary{cursor:pointer;font-weight:600}.gl28 dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:10px 0 2px}.gl28 dt{font-weight:600}.gl28 dd{margin:0;color:#4a5263}@media(max-width:600px){.gl28 dl{grid-template-columns:1fr}.gl28 dd{margin-bottom:6px}}
 </style></head><body><div class="wrap">
 <h1>2028 Neighborhood Playbook</h1>
-<p class="sub">A precinct is a small voting neighborhood. Fairfield County has 111 of them. This page makes a guess about how each one could vote in 2028. <b>How to use it:</b> 1. Pick a race. 2. Pick how much of our 2026 gains we keep. 3. Start at the top of the list. The top rows are the closest races, so they are the best places to work first. Lower down are places we are winning by a little, which we need to protect.</p>
+<p class="sub">You've decided to run. Now what? The less flashy races don't come with a campaign team. It's you, maybe a friend, going door to door and hoping what you're doing is the right thing to win. This is that guide: your guide to the numbers in each race, and your guide to getting to the finish line.</p>
+<p class="sub">2028 is a presidential year. More people vote, so the gap is bigger and getting voters out takes more work. Each race is what you make it, but 2028 requires you to get out of your bubble to win. This page gives an honest take on which races are winnable this cycle and which need someone to pull them closer for next time. A precinct is a small voting neighborhood, and Fairfield County has 111 of them. This page estimates how each one could vote in 2028. <b>How to use it:</b> 1. Pick a race. 2. Pick how much of our 2026 gains we keep. 3. Start at the top of the list. The top rows are the closest races, so they are the best places to work first. Lower down are places we are winning by a little, which we need to protect.</p>
 <p class="hwlink" style="margin:0 0 16px;font-size:15px"><a href="how_to_win.html" style="color:#2166ac;font-weight:600">How to Win: a game plan for every 2027 and 2028 race &rarr;</a></p>
+<details class="gl28"><summary>What the words in the table mean</summary><dl>
+<dt>2024, 2026</dt><dd>How the Democrat actually did in this precinct, out of every 100 votes.</dd>
+<dt>2028 guess</dt><dd>How many out of every 100 voters we expect to already be with the Democrat in 2028, based on the slider.</dd>
+<dt>Behind by</dt><dd>How many more votes the Republican would get.</dd>
+<dt>Change vote</dt><dd>People who previously voted for the other candidate. This is how many would need to switch to close the gap.</dd>
+<dt>Or new voters</dt><dd>Voter registration. How many new voters we would need to sign up and get to the polls instead.</dd>
+<dt>Abortion Yes 2023</dt><dd>How many out of every 100 voters here said Yes to abortion rights in 2023.</dd>
+<dt>Extra if we match</dt><dd>The extra votes the Democrat gets by matching the 2023 abortion rights vote.</dd>
+<dt>Status</dt><dd>Where the precinct stands: a close race to work first, or a lead to protect.</dd>
+</dl></details>
 <div class="controls">
  <select id="race" aria-label="Race"><option value="pres">President (top of ticket)</option><option value="sen">U.S. Senate</option><option value="cong">Congress (OH-12)</option><option value="h73" selected>Ohio House 73</option><option value="h69">Ohio House 69</option></select>
  <div class="slider"><label for="k">How much of our 2026 gains do we keep?</label><input id="k" type="range" min="0" max="150" step="5" value="50"><b id="kv">50%</b></div>
