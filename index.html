@@ -132,6 +132,13 @@ footer{margin-top:48px;color:var(--slate);font-size:.85rem;border-top:1px solid 
 @media (max-width:520px){main{padding-top:28px}.go{padding:0 14px}}
 @media (prefers-reduced-motion:no-preference){#results.show{animation:rise .35s ease-out}@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}}
 .why{margin-top:44px;padding-top:8px;border-top:1px solid var(--rule)}.why h2{font-size:1.15rem;margin:22px 0 6px}.why p{margin:0 0 12px;max-width:62ch}
+@media (min-width:1000px){
+main{max-width:1120px;display:grid;grid-template-columns:minmax(0,1fr) 360px;column-gap:56px;align-items:start;padding-top:48px}
+main>footer{grid-column:1/-1}
+.why{margin-top:0;border-top:0;border-left:3px solid var(--red);padding:2px 0 2px 24px;position:sticky;top:24px}
+.why h2:first-child{margin-top:0}
+.brand .in{max-width:1120px}
+}
 </style>
 </head>
 <body>
@@ -140,6 +147,7 @@ footer{margin-top:48px;color:var(--slate);font-size:.85rem;border-top:1px solid 
   <nav><a href="https://fairdems.com/upcoming-events/">Come to a meeting</a></nav>
 </div></header>
 <main>
+<div class="col">
 <h1>Run for Office in Fairfield County</h1>
 <p class="lede">Federal races get all the attention, but local offices are where the work actually gets done. Type in your address and you'll see every office you could run for, what the job involves, and how to get on the ballot.</p>
 
@@ -159,6 +167,7 @@ footer{margin-top:48px;color:var(--slate);font-size:.85rem;border-top:1px solid 
 <section id="results" aria-live="polite"></section>
 <section id="openseats" aria-label="Open precinct committee seats"></section>
 
+</div>
 <section class="why">
 <h2>Why we made this</h2>
 <p>Jerrad Christian likes to tell people he woke up one morning and decided to run for Congress. Then he had to Google what forms to fill out. There was no one place that listed every office in Fairfield County and how to get started, so we built one. This page does the Googling for you and provides a reality check on the race's size.</p>
